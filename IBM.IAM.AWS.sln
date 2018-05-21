@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27428.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBM.IAM.AWS.SecurityToken", "ClassLibrary1\IBM.IAM.AWS.SecurityToken.csproj", "{A7DA1D48-C767-4D67-B7F6-C7D841B0DB1A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBM.IAM.AWS.SecurityToken", "IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.csproj", "{A7DA1D48-C767-4D67-B7F6-C7D841B0DB1A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
