@@ -1,4 +1,4 @@
-# IBM.IAM.AWS.SecurityToken
+# IBM - Identity and Access Management AWS SAML Integration
 Authenticate a user against a IBM Identity and Access Management server and select role from SAML response.
 
 All [releases](https://www.powershellgallery.com/packages/IBM.IAM.AWS.SecurityToken/) can be pulled from PowerShell Galery using [PowerShellGet](https://www.powershellgallery.com/).
