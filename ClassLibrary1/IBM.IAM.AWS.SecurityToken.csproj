@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A7DA1D48-C767-4D67-B7F6-C7D841B0DB1A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>IBM.IAM.AWS.SecurityToken</RootNamespace>
+    <AssemblyName>IBM.IAM.AWS.SecurityToken</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AssemblyInfoVersionSemVerSettings>AssemblyVersion.NoneWithAutoReset.Beta</AssemblyInfoVersionSemVerSettings>
+    <DocumentationFile>bin\Debug\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
+    <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
+    <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AWSPowerShell">
+      <HintPath>C:\Program Files (x86)\AWS Tools\PowerShell\AWSPowerShell\AWSPowerShell.dll</HintPath>
+    </Reference>
+    <Reference Include="AWSSDK.Core, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
+      <HintPath>..\packages\AWSSDK.Core.3.3.22.5\lib\net45\AWSSDK.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="AWSSDK.SecurityToken, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
+      <HintPath>..\packages\AWSSDK.SecurityToken.3.3.4.3\lib\net45\AWSSDK.SecurityToken.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Management.Automation, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\WindowsPowerShell\3.0\System.Management.Automation.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.6.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.6\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="SAML\AmazonResourceName.cs" />
+    <Compile Include="SAML\IbmIamErrorException.cs" />
+    <Compile Include="SAML\IbmIamException.cs" />
+    <Compile Include="SAML\IbmIamPasswordExpiredException.cs" />
+    <Compile Include="SAML\IBMSAMAuthenticationController.cs" />
+    <Compile Include="SAML\IBMSAMLAuthenticationResponseParser.cs" />
+    <Compile Include="SAML\ImpersonationState.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SAML\NativeMethods.cs" />
+    <Compile Include="SAML\SAMLAssertion.cs" />
+    <Compile Include="SAML\SAMLCredential.cs" />
+    <Compile Include="SAML\SetAwsIbmSamlCredentialsCmdlet.cs" />
+    <Compile Include="SAML\StoredInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+    <None Include="PublishToGallery.ps1" />
+    <None Include="IBM.IAM.AWS.SecurityToken.psd1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="LICENSE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\AWSSDK.SecurityToken.3.3.4.3\analyzers\dotnet\cs\AWSSDK.SecurityToken.CodeAnalysis.dll" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>del /Q "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\*.*"
+xcopy  /Y "$(TargetDir)IBM.IAM.AWS.SecurityToken.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)System.Net.Http.Formatting.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)AWSSDK.Core.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)AWSSDK.SecurityToken.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)Newtonsoft.Json.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)*.psd1" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)*.txt" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)*Help.xml" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"</PostBuildEvent>
+  </PropertyGroup>
+  <Import Project="..\packages\XmlDoc2CmdletDoc.0.2.10\build\XmlDoc2CmdletDoc.targets" Condition="Exists('..\packages\XmlDoc2CmdletDoc.0.2.10\build\XmlDoc2CmdletDoc.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\XmlDoc2CmdletDoc.0.2.10\build\XmlDoc2CmdletDoc.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\XmlDoc2CmdletDoc.0.2.10\build\XmlDoc2CmdletDoc.targets'))" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
