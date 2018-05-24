@@ -1,5 +1,4 @@
 ﻿using Amazon;
-using Amazon.PowerShell.Common;
 using Amazon.Runtime;
 using Amazon.Runtime.CredentialManagement;
 using Amazon.SecurityToken;
@@ -11,7 +10,6 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
 using System.Net;
-using System.Reflection;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
@@ -28,11 +26,9 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
     ///   <code>Set-AwsIbmSamlCredentials -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server') </code>
     /// </example>
     /// </summary>
-    [AWSCmdlet("For use with authentication against a SAML-based IBM IAM federated identity provider to obtain temporary role-based AWS credentials."), 
-        AWSCmdletOutput("IBM.IAM.AWS.SecurityToken.SAML.StoredInfo"), 
-        Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = "StoreOneRole"), 
+    [Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = "StoreOneRole"), 
         OutputType(typeof(StoredInfo))]
-    public class SetAwsIbmSamlCredentials : BaseCmdlet
+    public class SetAwsIbmSamlCredentials : PSCmdlet
     {
         const string RolePrompt = "Select the role to be assumed when this profile is active";
 
@@ -116,10 +112,10 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                     base.WriteVerbose("Network Credentials given, will attempt to use them.");
                     networkCredential = this.Credential.GetNetworkCredential();
                 }
-                bool hasPrinARN = base.ParameterWasBound("PrincipalARN") && !string.IsNullOrWhiteSpace(this.PrincipalARN);
-                bool hasRoleARN = base.ParameterWasBound("RoleARN") && !string.IsNullOrWhiteSpace(this.RoleARN);
+                bool hasPrinARN = this.ParameterWasBound("PrincipalARN") && !string.IsNullOrWhiteSpace(this.PrincipalARN);
+                bool hasRoleARN = this.ParameterWasBound("RoleARN") && !string.IsNullOrWhiteSpace(this.RoleARN);
                 if (hasPrinARN != hasRoleARN)
-                    base.ThrowExecutionError("RoleARN must be specified with PrincipalARN.", this);
+                    this.ThrowExecutionError("RoleARN must be specified with PrincipalARN.", this);
                 if (hasPrinARN & hasRoleARN)
                     preselectedPrincipalAndRoleARN = $"{this.RoleARN},{this.PrincipalARN}";
 
@@ -127,7 +123,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 SAMLEndpoint endpoint = new SAMLEndpointManager().GetEndpoint(this.EndpointName);
                 if (endpoint == null)
                 {
-                    base.ThrowExecutionError("Endpoint not found. You must first call Set-AWSSamlEndpoint to store the endpoint URL to the IBM IDS site.", this);
+                    this.ThrowExecutionError("Endpoint not found. You must first call Set-AWSSamlEndpoint to store the endpoint URL to the IBM IDS site.", this);
                 }
                 // We can't use the nice controller they built, as it uses there own assertion class that has issues because of dictionary use.
                 // var sAMLAssertion = new SAMLAuthenticationController(new IBMSAMAuthenticationController(this),new IBMSAMLAuthenticationResponseParser(), null).GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
@@ -269,9 +265,9 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 }
             }
             if (string.IsNullOrEmpty(roleArn))
-                base.ThrowExecutionError("A role is required before the profile can be stored.", this);
+                this.ThrowExecutionError("A role is required before the profile can be stored.", this);
 
-            base.WriteVerbose($"Saving to profile '{this.StoreAs}'.\r\nUse 'Set-AWSCredentials -ProfileName {this.StoreAs}' to load this profile and obtain temporary AWS credentials.");
+            base.WriteVerbose($"Saving to profile '{this.StoreAs}'.");
             string userIdentity = null;
             if (networkCredential != null)
             {
@@ -298,7 +294,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 this.StoreAs,
                 this.ProfileLocation,
                 stsEndpointRegion);
-            base.WriteVerbose($"Stored AWS Credentials as {this.StoreAs}.");
+            base.WriteVerbose($"Stored AWS Credentials as {this.StoreAs}.\r\nUse 'Set-AWSCredentials -ProfileName {this.StoreAs}' to load this profile and obtain temporary AWS credentials.");
             return new StoredInfo {
                 StoreAs = this.StoreAs,
                 PrincipalArn = role.PrincipalArn,
@@ -306,20 +302,31 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             };
         }
 
-        MethodInfo miRegisterProfile = null;
-        private void RegisterProfile(CredentialProfileOptions profileOptions, string name, string profileLocation, RegionEndpoint region)
+        private void RegisterProfile(CredentialProfileOptions profileOptions, string storeAs, string profileLocation, RegionEndpoint region)
         {
-            if (miRegisterProfile == null)
-            {
-                Type tpSettingsStore = typeof(SetSamlRoleProfileCmdlet).Assembly.GetType("Amazon.PowerShell.Common.SettingsStore");
-                miRegisterProfile = tpSettingsStore.GetMethod("RegisterProfile", BindingFlags.Static | BindingFlags.NonPublic);
-            }
-            miRegisterProfile.Invoke(null, new object[] {
-                profileOptions,
-                name,
-                profileLocation,
-                region
-            });
+            CredentialProfile credentialProfile = new CredentialProfile(storeAs, profileOptions);
+            credentialProfile.Region = region;
+            new CredentialProfileStoreChain(profileLocation).RegisterProfile(credentialProfile);
+        }
+
+        private bool ParameterWasBound(string parameterName)
+        {
+            return base.MyInvocation.BoundParameters.ContainsKey(parameterName);
+        }
+        private void ThrowExecutionError(string message, object errorSource)
+        {
+            this.ThrowExecutionError(message, errorSource, null);
+        }
+        private void ThrowExecutionError(string message, object errorSource, Exception innerException)
+        {
+            base.ThrowTerminatingError(
+                new ErrorRecord(
+                    new InvalidOperationException(message, innerException), 
+                    (innerException == null) ? "InvalidOperationException" : innerException.GetType().ToString(), 
+                    ErrorCategory.InvalidOperation, 
+                    errorSource
+                    )
+                );
         }
 
     }
