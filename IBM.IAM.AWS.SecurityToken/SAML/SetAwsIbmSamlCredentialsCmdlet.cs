@@ -272,7 +272,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                             roleArn = collection[collection.IndexOf(fnd[0])].HelpMessage;
                             userChooses = false;
                         }
-                        else if (fnd.Length >= 0)
+                        else if (fnd.Length >= 1)
                             idxDefault = collection.IndexOf(fnd[0]); // Pre-select the first role found with the HelpFindResource's value
                     }
                     if (userChooses)
