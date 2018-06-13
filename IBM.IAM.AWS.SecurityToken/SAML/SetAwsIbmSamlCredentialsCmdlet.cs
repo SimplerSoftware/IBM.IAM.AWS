@@ -90,6 +90,13 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         [Parameter(ValueFromPipelineByPropertyName = true, Mandatory = false)]
         public string ProfileLocation { get; set; }
 
+        /// <summary>
+        /// If only one role matches the value in HelpFindResource, then select that single role and don't ask the user which to use.
+        /// <para type="description">If only one role matches the value in HelpFindResource, then select that single role and don't ask the user which to use.</para>
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter SingleMatch { get; set; }
+
         // We can't store multiple roles until the nice built-in SAMLAuthenticationController gets fixed to support multiple roles in the same account
         //[Parameter(Mandatory = true, ParameterSetName = "StoreAllRoles")]
         //public SwitchParameter StoreAllRoles { get; set; }
@@ -253,15 +260,26 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
 
                         collection.Add(new ChoiceDescription(label, cred.Value));
                     }
+
+                    bool userChooses = true;
                     int idxDefault = 0;
                     if (!string.IsNullOrWhiteSpace(this.HelpFindResource))
                     {
-                        var fnd = collection.Where(r => r.Label.IndexOf(this.HelpFindResource, StringComparison.InvariantCultureIgnoreCase) >= 0).FirstOrDefault();
-                        if (fnd != null)
-                            idxDefault = collection.IndexOf(fnd);
+                        var fnd = collection.Where(r => r.Label.IndexOf(this.HelpFindResource, StringComparison.InvariantCultureIgnoreCase) >= 0).ToArray();
+                        if (fnd.Length == 1 && this.SingleMatch)
+                        {
+                            WriteVerbose($"Found single match of role with the value '{this.HelpFindResource}', using that specific role only.");
+                            roleArn = collection[collection.IndexOf(fnd[0])].HelpMessage;
+                            userChooses = false;
+                        }
+                        else if (fnd.Length >= 0)
+                            idxDefault = collection.IndexOf(fnd[0]); // Pre-select the first role found with the HelpFindResource's value
                     }
-                    int index = base.Host.UI.PromptForChoice("Select Role", "Select the role to be assumed when this profile is active", collection, idxDefault);
-                    roleArn = collection[index].HelpMessage;
+                    if (userChooses)
+                    {
+                        int index = base.Host.UI.PromptForChoice("Select Role", "Select the role to be assumed when this profile is active", collection, idxDefault);
+                        roleArn = collection[index].HelpMessage;
+                    }
                 }
             }
             if (string.IsNullOrEmpty(roleArn))
@@ -274,7 +292,6 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 userIdentity = (string.IsNullOrEmpty(networkCredential.Domain) ? networkCredential.UserName : (networkCredential.Domain + "\\" + networkCredential.UserName));
             }
             var role = sAMLAssertion.RoleSet.FirstOrDefault(r => r.Value.Equals(roleArn, StringComparison.OrdinalIgnoreCase));
-            //BasicAWSCredentials basicCreds = new BasicAWSCredentials("", "");
             AnonymousAWSCredentials anonCred = new AnonymousAWSCredentials();
             AmazonSecurityTokenServiceClient sts = new AmazonSecurityTokenServiceClient(anonCred, stsEndpointRegion);
             base.WriteVerbose($"Calling AssumeRoleWithSAML at the {stsEndpointRegion.SystemName} region to retrieve Access and Secret Keys.");
