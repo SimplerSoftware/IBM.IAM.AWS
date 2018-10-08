@@ -41,71 +41,18 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                     using (StreamReader streamReader = new StreamReader(httpWebResponse.GetResponseStream()))
                         result = streamReader.ReadToEnd();
                     _cmdlet.WriteVerbose($"Retrieved response from identity provider.");
-                    // <form class="form-signin" role="form" method="post" action="Login">
-                    Regex rgxForm = new Regex(@"<form\s(?<Attr>[^>]*)/?>(?<Content>[\s\w\S\W]*)</form>");
-                    Regex rgxAtrAction = new Regex(@"(?<=\baction=""|')[^ ""']*");
-                    var forms = rgxForm.Matches(result);
-                    if (forms.Count == 1)
-                    {
-                        _cmdlet.WriteVerbose($"Found one form in response.");
-                        string attribs = forms[0].Groups["Attr"].Value;
-                        string content = forms[0].Groups["Content"].Value;
-                        string sAction = "";
-                        Match mAtt = null;
-                        if ((mAtt = rgxAtrAction.Match(attribs)).Success)
-                            sAction = mAtt.Value;
+                    var creds = credentials as NetworkCredential;
+                    Dictionary<string, string> values = new Dictionary<string, string>();
+                    values.Add("username", creds.UserName);
+                    values.Add("password", creds.Password);
+                    var formResponse = GetFormData(result, values);
 
-                        //  <input type="username" class="form-control nv-text-input" name="username" required autofocus></input>
-                        Regex rgxInputs = new Regex(@"<input\s([^>]*)/?>");
-                        Regex rgxAtrType = new Regex(@"(?<=\btype=""|')[^ ""']*");
-                        Regex rgxAtrName = new Regex(@"(?<=\bname=""|')[^ ""']*");
-                        Regex rgxAtrValue = new Regex(@"(?<=\bvalue=""|')[^ ""']*");
-                        Hashtable inputs = new Hashtable();
-                        Dictionary<string, string> formData = new Dictionary<string, string>();
-                        var fInputs = rgxInputs.Matches(content);
-                        _cmdlet.WriteVerbose($"Found {fInputs.Count} input(s) in form. (Some may be hidden fields.)");
-                        var creds = credentials as NetworkCredential;
-                        foreach (Match match in fInputs)
-                        {
-                            string name = null;
-                            string type = null;
-                            string value = null;
-                            if (match.Success)
-                            {
-                                if ((mAtt = rgxAtrName.Match(match.Value)).Success)
-                                    name = mAtt.Value;
-                                if ((mAtt = rgxAtrType.Match(match.Value)).Success)
-                                    type = mAtt.Value;
-                                if ((mAtt = rgxAtrValue.Match(match.Value)).Success)
-                                    value = WebUtility.HtmlDecode(mAtt.Value);
-                                if (!type.Equals("hidden"))
-                                {
-                                    _cmdlet.Host.UI.Write($"{name}: ");
-                                    if (creds != null && name.Equals("username", StringComparison.InvariantCultureIgnoreCase))
-                                    {
-                                        _cmdlet.Host.UI.WriteLine($"(using predefined username)");
-                                        value = creds.UserName;
-                                    }
-                                    else if (creds != null && name.Equals("password", StringComparison.InvariantCultureIgnoreCase))
-                                    {
-                                        _cmdlet.Host.UI.WriteLine($"(using predefined password)");
-                                        value = creds.Password;
-                                    }
-                                    else if (type.Equals("password"))
-                                    {
-                                        using (SecureString secStr = _cmdlet.Host.UI.ReadLineAsSecureString())
-                                        {
-                                            value = this.SecureStringToString(secStr);
-                                        }
-                                    }
-                                    else
-                                        value = _cmdlet.Host.UI.ReadLine();
-                                }
-                                formData.Add(name, value);
-                            }
-                        }
-                        Uri postTo = new Uri(httpWebResponse.ResponseUri, sAction);
-                        using (HttpWebResponse httpWebResponsePost = this.PostProvider(postTo, cookies, httpWebResponse.ResponseUri, formData, proxySettings))
+                    bool stopRequest = false;
+                    int tryCount = 1;
+                    do
+                    {
+                        Uri postTo = new Uri(httpWebResponse.ResponseUri, formResponse.Action);
+                        using (HttpWebResponse httpWebResponsePost = this.PostProvider(postTo, cookies, httpWebResponse.ResponseUri, formResponse.FormData, proxySettings))
                         {
                             if (httpWebResponsePost.StatusCode == HttpStatusCode.Found)
                             {
@@ -180,22 +127,41 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                     }
                                     else
                                     {
-                                        using (HttpWebResponse httpRedirectResponse = this.QueryProvider(uLocation, cookies, httpWebResponse.ResponseUri, proxySettings, false))
+                                        using (HttpWebResponse httpRedirectResponse = this.QueryProvider(uLocation, cookies, httpWebResponse.ResponseUri, proxySettings, true))
                                         {
                                             using (StreamReader streamReader = new StreamReader(httpRedirectResponse.GetResponseStream()))
                                             {
                                                 result = streamReader.ReadToEnd();
+                                                if (!IBMSAMLAuthenticationResponseParser.SAMLResponseField.IsMatch(result))
+                                                {
+                                                    // This should be asking for the MFA now
+                                                    formResponse = GetFormData(result, values);
+                                                }
+                                                else
+                                                    stopRequest = true;
                                             }
                                         }
                                     }
                                 }
                             }
+                            else
+                            {
+                                using (StreamReader streamReader = new StreamReader(httpWebResponsePost.GetResponseStream()))
+                                {
+                                    result = streamReader.ReadToEnd();
+                                    if (!IBMSAMLAuthenticationResponseParser.SAMLResponseField.IsMatch(result))
+                                    {
+                                        // This should be asking for the MFA now
+                                        formResponse = GetFormData(result, values);
+                                    }
+                                    else
+                                        stopRequest = true;
+                                }
+                            }
                         }
+                        tryCount++;
                     }
-                    else
-                    {
-                        throw new NotSupportedException("Found multiple forms in response, this is not currently supported.");
-                    }
+                    while (!stopRequest && tryCount < 5);
                 }
             }
             catch (IbmIamException)
@@ -283,5 +249,80 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 Marshal.ZeroFreeGlobalAllocUnicode(valuePtr);
             }
         }
+
+        private FormResponse GetFormData(string htmlResults, Dictionary<string,string> predefinedValues)
+        {
+            // <form class="form-signin" role="form" method="post" action="Login">
+            Regex rgxForm = new Regex(@"<form\s(?<Attr>[^>]*)/?>(?<Content>[\s\w\S\W]*)</form>");
+            Regex rgxAtrAction = new Regex(@"(?<=\baction=""|')[^ ""']*");
+            var forms = rgxForm.Matches(htmlResults);
+            if (forms.Count == 1)
+            {
+                _cmdlet.WriteVerbose($"Found one form in response.");
+                FormResponse formResponse = new FormResponse();
+                string formAttributes = forms[0].Groups["Attr"].Value;
+                string formContent = forms[0].Groups["Content"].Value;
+
+                Match mAtt = null;
+                if ((mAtt = rgxAtrAction.Match(formAttributes)).Success)
+                    formResponse.Action = mAtt.Value;
+
+                //  <input type="username" class="form-control nv-text-input" name="username" required autofocus></input>
+                Regex rgxInputs = new Regex(@"<input\s([^>]*)/?>");
+                Regex rgxAtrType = new Regex(@"(?<=\stype=[""'])[^""']*");
+                Regex rgxAtrName = new Regex(@"(?<=\sname=[""'])[^""']*");
+                Regex rgxAtrValue = new Regex(@"(?<=\svalue=[""'])[^""']*");
+                Hashtable inputs = new Hashtable();
+                var fInputs = rgxInputs.Matches(formContent);
+                _cmdlet.WriteVerbose($"Found {fInputs.Count} input(s) in form. (Some may be hidden fields.)");
+                foreach (Match match in fInputs)
+                {
+                    string name = null;
+                    string type = null;
+                    string value = null;
+                    if (match.Success)
+                    {
+                        if ((mAtt = rgxAtrName.Match(match.Value)).Success)
+                            name = mAtt.Value;
+                        if ((mAtt = rgxAtrType.Match(match.Value)).Success)
+                            type = mAtt.Value;
+                        if ((mAtt = rgxAtrValue.Match(match.Value)).Success)
+                            value = WebUtility.HtmlDecode(mAtt.Value);
+                        if (!type.Equals("hidden") && !type.Equals("submit"))
+                        {
+                            _cmdlet.Host.UI.Write($"{name}: ");
+                            if (predefinedValues != null && predefinedValues.ContainsKey(name.ToLower()))
+                            {
+                                _cmdlet.Host.UI.WriteLine($"(using predefined {name})");
+                                value = predefinedValues[name.ToLower()];
+                            }
+                            else if (type.Equals("password"))
+                            {
+                                using (SecureString secStr = _cmdlet.Host.UI.ReadLineAsSecureString())
+                                {
+                                    value = this.SecureStringToString(secStr);
+                                }
+                            }
+                            else
+                                value = _cmdlet.Host.UI.ReadLine();
+                        }
+                        if (!string.IsNullOrWhiteSpace(name))
+                            formResponse.FormData.Add(name, value);
+                    }
+                }
+
+                return formResponse;
+            }
+            else
+            {
+                throw new NotSupportedException("Found multiple forms in response, this is not currently supported.");
+            }
+        }
+    }
+
+    class FormResponse
+    {
+        public string Action { get; set; }
+        public Dictionary<string, string> FormData { get; set; } = new Dictionary<string, string>();
     }
 }

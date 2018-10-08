@@ -11,16 +11,30 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
 {
     public class SAMLAssertion
     {
-        private const string AssertionNamespace = "urn:oasis:names:tc:SAML:2.0:assertion";
-
-        private const string RoleXPath = "//response:Attribute[@Name='https://aws.amazon.com/SAML/Attributes/Role']";
+        internal const string AssertionNamespace = "urn:oasis:names:tc:SAML:2.0:assertion";
+        internal const string ProtocolNamespace = "urn:oasis:names:tc:SAML:2.0:protocol";
+        internal const string RoleXPath = "//saml:Attribute[@Name='https://aws.amazon.com/SAML/Attributes/Role']";
+        internal const string NotRoleXPath = "//saml:Attribute[not(@Name='https://aws.amazon.com/SAML/Attributes/Role')]";
 
         public string AssertionDocument
         {
             get;
             private set;
         }
-
+        public string Issuer
+        {
+            get;
+            private set;
+        }
+        public string Status
+        {
+            get;
+            private set;
+        }
+        public SAMLSubject Subject { get; private set; }
+        public SAMLConditions Conditions { get; private set; }
+        public SAMLAuthnStatement AuthnStatement { get; private set; }
+        public Dictionary<string, string> Attributes { get; private set; } = new Dictionary<string, string>();
         public IList<SAMLCredential> RoleSet
         {
             get;
@@ -69,8 +83,25 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             byte[] bytes = Convert.FromBase64String(this.AssertionDocument);
             xDoc.LoadXml(Encoding.UTF8.GetString(bytes));
             XmlNamespaceManager xmlNamespaceManager = new XmlNamespaceManager(xDoc.NameTable);
-            xmlNamespaceManager.AddNamespace("response", "urn:oasis:names:tc:SAML:2.0:assertion");
-            XmlNodeList xRoleList = xDoc.DocumentElement.SelectNodes("//response:Attribute[@Name='https://aws.amazon.com/SAML/Attributes/Role']", xmlNamespaceManager);
+            xmlNamespaceManager.AddNamespace("saml", SAMLAssertion.AssertionNamespace);
+            this.Issuer = xDoc.DocumentElement["Issuer", SAMLAssertion.AssertionNamespace]?.InnerText;
+            this.Status = xDoc.DocumentElement["Status", SAMLAssertion.ProtocolNamespace]?["StatusCode", SAMLAssertion.ProtocolNamespace]?.Attributes["Value"]?.InnerText;
+
+            var assertion = xDoc.DocumentElement["Assertion", SAMLAssertion.AssertionNamespace];
+            this.Subject = new SAMLSubject(assertion["Subject", SAMLAssertion.AssertionNamespace]);
+            this.Conditions = new SAMLConditions(assertion["Conditions", SAMLAssertion.AssertionNamespace]);
+            this.AuthnStatement = new SAMLAuthnStatement(assertion["AuthnStatement", SAMLAssertion.AssertionNamespace]);
+
+            XmlNodeList xNotRoleList = assertion.SelectNodes(SAMLAssertion.NotRoleXPath, xmlNamespaceManager);
+            foreach (XmlNode node in xNotRoleList)
+            {
+                string name = node.Attributes["Name"]?.Value;
+                string value = node["AttributeValue", SAMLAssertion.AssertionNamespace]?.InnerText;
+                if (!string.IsNullOrWhiteSpace(name))
+                    Attributes.Add(name, value);
+            }
+
+            XmlNodeList xRoleList = assertion.SelectNodes(SAMLAssertion.RoleXPath, xmlNamespaceManager);
             IList<SAMLCredential> lstSAML = new List<SAMLCredential>();
             if (xRoleList != null && xRoleList.Count > 0)
             {

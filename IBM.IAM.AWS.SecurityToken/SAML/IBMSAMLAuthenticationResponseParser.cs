@@ -9,10 +9,12 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
 {
     internal class IBMSAMLAuthenticationResponseParser //: IAuthenticationResponseParser
     {
+        public static Regex SAMLResponseField = new Regex("SAMLResponse\\W+value\\=\\\"([^\\\"]+)\\\"");
+
         public SAMLAssertion Parse(string authenticationResponse)
         {
             string assertion = string.Empty;
-            MatchCollection resposne = new Regex("SAMLResponse\\W+value\\=\\\"([^\\\"]+)\\\"").Matches(authenticationResponse);
+            MatchCollection resposne = IBMSAMLAuthenticationResponseParser.SAMLResponseField.Matches(authenticationResponse);
             if (resposne.Count == 0)
                 throw new Amazon.Runtime.FederatedAuthenticationFailureException("Invalid credentials or an error occurred on server. No SAML response found from server's response.");
             foreach (Match data in resposne)

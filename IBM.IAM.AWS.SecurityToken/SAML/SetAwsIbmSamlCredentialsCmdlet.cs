@@ -18,12 +18,20 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
     /// <para type="synopsis">Authenticates a user against IBM IAM server to utilize roles granted in AWS via AWS PowerShell cmdlets.</para>
     /// <para type="description">Authenticates a user against IBM IAM server to utilize roles granted in AWS via AWS PowerShell cmdlets.</para>
     /// <example>
-    ///   <title>Default usage. </title>
-    ///   <code>Set-AwsIbmSamlCredentials -EndpointName 'IBMEP'</code>
+    ///   <title>Default usage.</title>
+    ///   <code>
+    ///   $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
+    ///   Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
+    ///   Set-AwsIbmSamlCredentials -EndpointName 'IBMEP'
+    ///   </code>
     /// </example>
     /// <example>
-    ///   <title>Specifying a predefined username and password. </title>
-    ///   <code>Set-AwsIbmSamlCredentials -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server') </code>
+    ///   <title>Specifying a predefined username and password.</title>
+    ///   <code>
+    ///   $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
+    ///   Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
+    ///   Set-AwsIbmSamlCredentials -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server')
+    ///   </code>
     /// </example>
     /// </summary>
     [Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = "StoreOneRole"), 
@@ -314,6 +322,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             base.WriteVerbose($"Stored AWS Credentials as {this.StoreAs}.\r\nUse 'Set-AWSCredentials -ProfileName {this.StoreAs}' to load this profile and obtain temporary AWS credentials.");
             return new StoredInfo {
                 StoreAs = this.StoreAs,
+                SessionExpires = sAMLAssertion.AuthnStatement.SessionNotOnOrAfter,
                 PrincipalArn = role.PrincipalArn,
                 RoleArn = role.RoleArn
             };
