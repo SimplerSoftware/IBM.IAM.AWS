@@ -38,10 +38,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="AWSSDK.Core, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
-      <HintPath>..\packages\AWSSDK.Core.3.3.24\lib\net45\AWSSDK.Core.dll</HintPath>
+      <HintPath>..\packages\AWSSDK.Core.3.3.27\lib\net45\AWSSDK.Core.dll</HintPath>
     </Reference>
     <Reference Include="AWSSDK.SecurityToken, Version=3.3.0.0, Culture=neutral, PublicKeyToken=885c28607f98e604, processorArchitecture=MSIL">
-      <HintPath>..\packages\AWSSDK.SecurityToken.3.3.4.4\lib\net45\AWSSDK.SecurityToken.dll</HintPath>
+      <HintPath>..\packages\AWSSDK.SecurityToken.3.3.4.18\lib\net45\AWSSDK.SecurityToken.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -74,7 +74,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SAML\NativeMethods.cs" />
     <Compile Include="SAML\SAMLAssertion.cs" />
+    <Compile Include="SAML\SAMLAuthnStatement.cs" />
+    <Compile Include="SAML\SAMLConditions.cs" />
     <Compile Include="SAML\SAMLCredential.cs" />
+    <Compile Include="SAML\SAMLSubject.cs" />
     <Compile Include="SAML\SetAwsIbmSamlCredentialsCmdlet.cs" />
     <Compile Include="SAML\StoredInfo.cs" />
   </ItemGroup>
@@ -92,19 +95,23 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <Analyzer Include="..\packages\AWSSDK.SecurityToken.3.3.4.4\analyzers\dotnet\cs\AWSSDK.SecurityToken.CodeAnalysis.dll" />
+    <Analyzer Include="..\packages\AWSSDK.SecurityToken.3.3.4.18\analyzers\dotnet\cs\AWSSDK.SecurityToken.CodeAnalysis.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>del /Q "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\*.*"
-xcopy  /Y "$(TargetDir)IBM.IAM.AWS.SecurityToken.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)System.Net.Http.Formatting.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)AWSSDK.Core.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)AWSSDK.SecurityToken.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)Newtonsoft.Json.dll" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)*.psd1" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)*.txt" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
-xcopy  /Y "$(TargetDir)*Help.xml" "..\..\..\..\..\Docs\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"</PostBuildEvent>
+    <PostBuildEvent>set "Personal="
+for /f "tokens=1,3" %25%25A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /V Personal') do if /i "%25%25~A" == "Personal" set "Personal=%25%25~B"
+if not defined Personal exit /b 1
+
+del /Q "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\*.*"
+xcopy  /Y "$(TargetDir)IBM.IAM.AWS.SecurityToken.dll" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)System.Net.Http.Formatting.dll" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)AWSSDK.Core.dll" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)AWSSDK.SecurityToken.dll" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)Newtonsoft.Json.dll" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)*.psd1" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)*.txt" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"
+xcopy  /Y "$(TargetDir)*Help.xml" "%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\XmlDoc2CmdletDoc.0.2.10\build\XmlDoc2CmdletDoc.targets" Condition="Exists('..\packages\XmlDoc2CmdletDoc.0.2.10\build\XmlDoc2CmdletDoc.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
