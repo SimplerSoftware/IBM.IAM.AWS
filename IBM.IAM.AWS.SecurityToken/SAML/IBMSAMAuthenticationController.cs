@@ -269,10 +269,34 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
 
                 //  <input type="username" class="form-control nv-text-input" name="username" required autofocus></input>
                 Regex rgxInputs = new Regex(@"<input\s([^>]*)/?>");
-                Regex rgxAtrType = new Regex(@"(?<=\stype=[""'])[^""']*");
-                Regex rgxAtrName = new Regex(@"(?<=\sname=[""'])[^""']*");
-                Regex rgxAtrValue = new Regex(@"(?<=\svalue=[""'])[^""']*");
+                Regex rgxAtrType =  new Regex(@"(?<=\stype=[""']+)[^""']*|(?<=\stype=)[\w]+");
+                Regex rgxAtrName =  new Regex(@"(?<=\sname=[""']+)[^""']*|(?<=\sname=)[\w]+");
+                Regex rgxAtrValue = new Regex(@"(?<=\svalue=[""']+)[^""']*|(?<=\svalue=)[\w]+");
+                Regex rgxLabels = new Regex(@"<label\s([^>]*)>([^<]+)</label>");
+                Regex rgxAtrFor = new Regex(@"(?<=\sfor=[""']+)[^""']*|(?<=\sfor=)[\w]+");
                 Hashtable inputs = new Hashtable();
+
+                var fLabels = rgxLabels.Matches(formContent);
+                _cmdlet.WriteVerbose($"Found {fLabels.Count} label(s) in form. (Some may be hidden fields.)");
+                foreach (Match match in fLabels)
+                {
+                    string name = null;
+                    string value = null;
+                    if (match.Success)
+                    {
+                        if ((mAtt = rgxAtrFor.Match(match.Groups[1].Value)).Success)
+                            name = mAtt.Value;
+                        value = WebUtility.HtmlDecode(match.Groups[2].Value);
+                        if (!string.IsNullOrWhiteSpace(name))
+                        {
+                            if (formResponse.LabelData.ContainsKey(name))
+                                formResponse.LabelData[name] = value;
+                            else
+                                formResponse.LabelData.Add(name, value);
+                        }
+                    }
+                }
+
                 var fInputs = rgxInputs.Matches(formContent);
                 _cmdlet.WriteVerbose($"Found {fInputs.Count} input(s) in form. (Some may be hidden fields.)");
                 foreach (Match match in fInputs)
@@ -290,7 +314,12 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                             value = WebUtility.HtmlDecode(mAtt.Value);
                         if (!type.Equals("hidden") && !type.Equals("submit"))
                         {
-                            _cmdlet.Host.UI.Write($"{name}: ");
+                            string displayName = name;
+                            if (formResponse.LabelData.ContainsKey(name))
+                                displayName = $"{formResponse.LabelData[name]}".Trim();
+                            if (!displayName.EndsWith(":"))
+                                displayName += ":";
+                            _cmdlet.Host.UI.Write($"{displayName} ");
                             if (predefinedValues != null && predefinedValues.ContainsKey(name.ToLower()))
                             {
                                 _cmdlet.Host.UI.WriteLine($"(using predefined {name})");
@@ -307,7 +336,12 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                 value = _cmdlet.Host.UI.ReadLine();
                         }
                         if (!string.IsNullOrWhiteSpace(name))
-                            formResponse.FormData.Add(name, value);
+                        {
+                            if (formResponse.FormData.ContainsKey(name))
+                                formResponse.FormData[name] = value;
+                            else
+                                formResponse.FormData.Add(name, value);
+                        }
                     }
                 }
 
@@ -324,5 +358,6 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
     {
         public string Action { get; set; }
         public Dictionary<string, string> FormData { get; set; } = new Dictionary<string, string>();
+        public Dictionary<string, string> LabelData { get; set; } = new Dictionary<string, string>();
     }
 }
