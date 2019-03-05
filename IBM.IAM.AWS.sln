@@ -5,6 +5,13 @@ VisualStudioVersion = 15.0.27428.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IBM.IAM.AWS.SecurityToken", "IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.csproj", "{A7DA1D48-C767-4D67-B7F6-C7D841B0DB1A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E3388981-904D-45C3-8D34-8FEA5B13C250}"
+	ProjectSection(SolutionItems) = preProject
+		ChangeLog.md = ChangeLog.md
+		LICENSE.md = LICENSE.md
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

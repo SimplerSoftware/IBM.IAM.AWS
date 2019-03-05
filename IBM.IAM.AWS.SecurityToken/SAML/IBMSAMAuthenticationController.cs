@@ -20,6 +20,10 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36 Edge/15.15063";
 
         PSCmdlet _cmdlet;
+        public SecurityProtocolType SecurityProtocol { get; set; }
+        public string ErrorElement { get; set; } = "p";
+        public string ErrorClass { get; set; } = "error";
+
         public IBMSAMAuthenticationController(PSCmdlet cmdlet)
         {
             _cmdlet = cmdlet;
@@ -149,7 +153,12 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                 using (StreamReader streamReader = new StreamReader(httpWebResponsePost.GetResponseStream()))
                                 {
                                     result = streamReader.ReadToEnd();
-                                    if (!IBMSAMLAuthenticationResponseParser.SAMLResponseField.IsMatch(result))
+                                    string errMsg = CheckErrorMessage(result);
+                                    if (!string.IsNullOrWhiteSpace(errMsg))
+                                    {
+                                        throw new IbmIamException(errMsg);
+                                    }
+                                    else if (!IBMSAMLAuthenticationResponseParser.SAMLResponseField.IsMatch(result))
                                     {
                                         // This should be asking for the MFA now
                                         formResponse = GetFormData(result, values);
@@ -185,6 +194,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         private HttpWebResponse QueryProvider(Uri identityProvider, CookieContainer cookies, Uri referer, WebProxy proxySettings, bool autoRedirect = true)
         {
             _cmdlet.WriteVerbose($"Querying identity provider on host '{identityProvider.Host}' via {identityProvider.Scheme}.");
+            ServicePointManager.SecurityProtocol = this.SecurityProtocol;
             HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(identityProvider);
             httpWebRequest.UserAgent = IBMSAMAuthenticationController.UserAgent;
             httpWebRequest.Referer = referer?.ToString();
@@ -217,6 +227,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             byte[] byteArray = Encoding.UTF8.GetBytes(postData.ToString());
 
             _cmdlet.WriteVerbose($"Posting to identity provider on host '{identityProvider.Host}' via {identityProvider.Scheme}.");
+            ServicePointManager.SecurityProtocol = this.SecurityProtocol;
             HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(identityProvider);
             httpWebRequest.UserAgent = IBMSAMAuthenticationController.UserAgent;
             httpWebRequest.Referer = referer?.ToString();
@@ -351,6 +362,30 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             {
                 throw new NotSupportedException("Found multiple forms in response, this is not currently supported.");
             }
+        }
+
+        private string CheckErrorMessage(string htmlResults)
+        {
+            // (?<=<p\s[\s\w\S\W]*class=["']*error["']*[^>]*>)(?<Content>.+?)(?=</p>)
+            if (string.IsNullOrWhiteSpace(this.ErrorClass))
+            {
+                Regex rgxElmErr = new Regex($@"(?<=<{this.ErrorElement}[^>]*>)(?<Content>.+?)(?=</{this.ErrorElement}>)", RegexOptions.IgnoreCase);
+                var mtch = rgxElmErr.Match(htmlResults);
+                if (mtch.Success)
+                {
+                    return mtch.Groups["Content"].Value;
+                }
+            }
+            else
+            {
+                Regex rgxElmErr = new Regex($@"(?<=<{this.ErrorElement}\s[\s\w\S\W]*class=[""']*{this.ErrorClass}[""']*[^>]*>)(?<Content>.+?)(?=</{this.ErrorElement}>)", RegexOptions.IgnoreCase);
+                var mtch = rgxElmErr.Match(htmlResults);
+                if (mtch.Success)
+                {
+                    return mtch.Groups["Content"].Value;
+                }
+            }
+            return null;
         }
     }
 
