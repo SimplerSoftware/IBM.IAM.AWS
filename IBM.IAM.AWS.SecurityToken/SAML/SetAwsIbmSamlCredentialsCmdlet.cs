@@ -140,6 +140,34 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         [ValidateNotNullOrEmpty]
         public string STSEndpointRegion { get; set; } = RegionEndpoint.USEast2.SystemName;
 
+        /// <summary>
+        /// The address of the web proxy in Url form. (https://proxy.example.corp:8080)
+        /// <para type="description">The address of the proxy in Url form. (https://proxy.example.corp:8080)</para>
+        /// </summary>
+        [Parameter()]
+        public Uri ProxyAddress { get; set; }
+
+        /// <summary>
+        /// The credentials of the web proxy.
+        /// <para type="description">The credentials of the web proxy.</para>
+        /// </summary>
+        [Parameter()]
+        public ICredentials ProxyCredentials { get; set; }
+
+        /// <summary>
+        /// Indicates whether to bypass the proxy server for local addresses.
+        /// <para type="description">Indicates whether to bypass the proxy server for local addresses.</para>
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter ProxyBypassOnLocal { get; set; }
+
+        /// <summary>
+        /// A address that does not use the proxy server.
+        /// <para type="description">A address that does not use the proxy server.</para>
+        /// </summary>
+        [Parameter()]
+        public string[] ProxyBypassList { get; set; }
+
         protected override void ProcessRecord()
         {
             try
@@ -164,15 +192,21 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 {
                     this.ThrowExecutionError("Endpoint not found. You must first call Set-AWSSamlEndpoint to store the endpoint URL to the IBM IDS site.", this);
                 }
-                // We can't use the nice controller they built, as it uses there own assertion class that has issues because of dictionary use.
+                // We can't use the nice controller they built, as it uses there own assertion class that has issues because of dictionary use. (Old Note, it is fixed now apparently.)
                 var ctlr = new IBMSAMAuthenticationController(this);
                 ctlr.ErrorElement = this.ErrorElement;
                 ctlr.ErrorClass = this.ErrorClass;
                 ctlr.SecurityProtocol = this.SecurityProtocol;
                 base.WriteVerbose("Authenticating with endpoint to verify role data...");
-                var sAMLAssertion = new Amazon.SecurityToken.SAML.SAMLAuthenticationController(ctlr, new IBMSAMLAuthenticationResponseParser(), null).GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
+                var sAMLAssertion = new Amazon.SecurityToken.SAML.SAMLAuthenticationController(
+                    ctlr, 
+                    new IBMSAMLAuthenticationResponseParser(), 
+                    this.GetWebProxy()
+                    ).GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
+                //NOTE: Below can be deleted once we are comfortable knowing AWS's SAMLAuthenticationController works correctly now.
                 ////string authenticationResponse = ctlr.Authenticate(endpoint.EndpointUri, networkCredential, endpoint.AuthenticationType.ToString(), null);
                 base.WriteVerbose("Parsing authentication response...");
+                //NOTE: Below can be deleted once we are comfortable knowing AWS's SAMLAuthenticationController works correctly now.
                 ////var sAMLAssertion = new IBMSAMLAuthenticationResponseParser().Parse(authenticationResponse);
                 RegionEndpoint regionEndpoint = RegionEndpoint.GetBySystemName(this.STSEndpointRegion);
                 base.WriteVerbose($"Endpoint region set to {regionEndpoint.SystemName}.");
@@ -252,6 +286,15 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             return false;
         }
 
+        internal WebProxy GetWebProxy()
+        {
+            if (this.ProxyAddress != null){
+                return new WebProxy(this.ProxyAddress, this.ProxyBypassOnLocal, this.ProxyBypassList, this.ProxyCredentials);
+            }
+            return null;
+        }
+        internal bool HasWebProxy { get { return this.ProxyAddress != null; } }
+
         private StoredInfo SelectAndStoreProfileForRole(Amazon.SecurityToken.SAML.SAMLAssertion sAMLAssertion, string preselectedPrincipalAndRoleARN, NetworkCredential networkCredential, RegionEndpoint stsEndpointRegion)
         {
             string roleArn = preselectedPrincipalAndRoleARN;
@@ -316,7 +359,14 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 userIdentity = (string.IsNullOrEmpty(networkCredential.Domain) ? networkCredential.UserName : (networkCredential.Domain + "\\" + networkCredential.UserName));
             var role = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).FirstOrDefault(r => r.Value.Equals(roleArn, StringComparison.OrdinalIgnoreCase));
             AnonymousAWSCredentials anonCred = new AnonymousAWSCredentials();
-            AmazonSecurityTokenServiceClient sts = new AmazonSecurityTokenServiceClient(anonCred, stsEndpointRegion);
+            AmazonSecurityTokenServiceConfig cfg = new AmazonSecurityTokenServiceConfig
+            {
+                RegionEndpoint = stsEndpointRegion
+            };
+            if (this.HasWebProxy)
+                cfg.SetWebProxy(this.GetWebProxy());
+            AmazonSecurityTokenServiceClient sts = new AmazonSecurityTokenServiceClient(anonCred, cfg);
+            
             base.WriteVerbose($"Calling AssumeRoleWithSAML at the {stsEndpointRegion.SystemName} region to retrieve Access and Secret Keys.");
             AssumeRoleWithSAMLResponse response = sts.AssumeRoleWithSAML(new AssumeRoleWithSAMLRequest() {
                 PrincipalArn = role.PrincipalArn.OriginalString,

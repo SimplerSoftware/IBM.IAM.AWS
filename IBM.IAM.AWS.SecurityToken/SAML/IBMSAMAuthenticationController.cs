@@ -238,6 +238,11 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             httpWebRequest.Method = "POST";
             httpWebRequest.ContentType = "application/x-www-form-urlencoded";
             httpWebRequest.ContentLength = byteArray.Length;
+            if (proxySettings != null)
+            {
+                _cmdlet.WriteVerbose($"Proxy settings applied for call.");
+                httpWebRequest.Proxy = proxySettings;
+            }
 
             Stream dataStream = httpWebRequest.GetRequestStream();
             dataStream.Write(byteArray, 0, byteArray.Length);

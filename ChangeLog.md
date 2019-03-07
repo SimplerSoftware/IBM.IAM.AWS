@@ -18,6 +18,7 @@
         - Additional information about change #1
 -->
 ## Upcoming Release
+* Add full proxy support for SAML client and STS client.
 
 ## 2019.03.05 - 1.0.1903.13
 * New SecurityProtocol parameter for Set-AwsIbmSamlCredentials cmdlet to choose what type of protocol to use for HTTPS.
