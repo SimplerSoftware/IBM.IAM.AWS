@@ -18,7 +18,17 @@
         - Additional information about change #1
 -->
 ## Upcoming Release
+
+## 2019.05.29 - 1.0.1905.43
 * Add full proxy support for SAML client and STS client.
+* Moved project to .Net Standard type
+* Support for PowerShell & PowerShell Core
+* Refactor code to use as much of AWS libraries as possible.
+* Add Get-AwsIbmSamlRoles CmdLet - Will just pull the SAML doc and list roles in doc.
+* Add custom format view for returned types
+* Add StoreAllRoles param switch to Set-AwsIbmSamlCredentials - will store all roles using the role name.
+* Use shared AWS credential config location to store profiles
+* Add RegionMap parameter to Set-AwsIbmSamlCredentials
 
 ## 2019.03.05 - 1.0.1903.13
 * New SecurityProtocol parameter for Set-AwsIbmSamlCredentials cmdlet to choose what type of protocol to use for HTTPS.

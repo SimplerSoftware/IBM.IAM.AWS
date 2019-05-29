@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IBM.IAM.AWS.SecurityToken": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "commandLineArgs": "-NoProfile -NoExit -Command \"Import-Module IBM.IAM.AWS.SecurityToken\"",
+      "workingDirectory": "C:\\Users\\carejw\\source\\"
+    }
+  }
+}

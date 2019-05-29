@@ -1,0 +1,291 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>IBM.IAM.AWS.SecurityToken</name>
+    </assembly>
+    <members>
+        <member name="M:IBM.IAM.AWS.SecurityToken.AsyncHelpers.RunSync(System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Execute's an async Task[T] method which has a void return value synchronously
+            </summary>
+            <param name="task">Task[T] method to execute</param>
+        </member>
+        <member name="M:IBM.IAM.AWS.SecurityToken.AsyncHelpers.RunSync``1(System.Func{System.Threading.Tasks.Task{``0}})">
+            <summary>
+            Execute's an async Task[T] method which has a T return type synchronously
+            </summary>
+            <typeparam name="T">Return Type</typeparam>
+            <param name="task">Task[T] method to execute</param>
+            <returns></returns>
+        </member>
+        <member name="T:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet">
+            <summary>
+            Authenticate a user against a IBM Identity and Access Management server and select role from SAML response.
+            <para type="synopsis">Authenticates a user against IBM IAM server to utilize roles granted in AWS via AWS PowerShell cmdlets.</para>
+            <para type="description">Authenticates a user against IBM IAM server to utilize roles granted in AWS via AWS PowerShell cmdlets.</para>
+            <example>
+              <title>Default usage.</title>
+              <code>
+              $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
+              Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
+              Get-AwsIbmSamlRoles -EndpointName 'IBMEP'
+              </code>
+            </example>
+            <example>
+              <title>Specifying a predefined username and password.</title>
+              <code>
+              $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
+              Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
+              Get-AwsIbmSamlRoles -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server')
+              </code>
+            </example>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.EndpointName">
+            <summary>
+            The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.
+            <para type="description">The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.Credential">
+            <summary>
+            The credentials you want to use to auto-login to the IBM IAM server.
+            <para type="description">The credentials you want to use to auto-login to the IBM IAM server.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.AwsAccountId">
+            <summary>
+            AWS account id to filter out roles only in a specific account.
+            <para type="description">AWS account id to filter out roles only in a specific account.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.SecurityProtocol">
+            <summary>
+            Set what Security Protocol to use when connecting over HTTPS. Default: TLS 1.2
+            <para type="description">Set what Security Protocol to use when connecting over HTTPS. Default: TLS 1.2</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.ErrorElement">
+            <summary>
+            Set what HTML element will contain a error response if there is a error from bad login. Default: P
+            <para type="description">Set what HTML element will contain a error response if there is a error from bad login. Default: P</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.ErrorClass">
+            <summary>
+            Set what HTML class the ErrorElement will contain for a error response if there is a error from bad login. Default: error
+            <para type="description">Set what HTML class the ErrorElement will contain for a error response if there is a error from bad login. Default: error</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.STSEndpointRegion">
+            <summary>
+            Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2
+            <para type="description">Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.ProxyAddress">
+            <summary>
+            The address of the web proxy in Url form. (https://proxy.example.corp:8080)
+            <para type="description">The address of the proxy in Url form. (https://proxy.example.corp:8080)</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.ProxyCredentials">
+            <summary>
+            The credentials of the web proxy.
+            <para type="description">The credentials of the web proxy.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.ProxyBypassOnLocal">
+            <summary>
+            Indicates whether to bypass the proxy server for local addresses.
+            <para type="description">Indicates whether to bypass the proxy server for local addresses.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.GetAwsIbmSamlRolesCmdlet.ProxyBypassList">
+            <summary>
+            A address that does not use the proxy server.
+            <para type="description">A address that does not use the proxy server.</para>
+            </summary>
+        </member>
+        <member name="T:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential">
+            <summary>
+            AWS Principal and Role ARNs
+            <para type="description">AWS Principal and Role ARNs</para>
+            </summary>
+        </member>
+        <member name="M:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential.#ctor">
+            <summary>
+            Default empty Credential
+            </summary>
+        </member>
+        <member name="M:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential.#ctor(System.Collections.Generic.KeyValuePair{System.String,System.String})">
+            <summary>
+            Parse Credential from Value of KeyValuePair
+            </summary>
+            <param name="r">KeyValuePair with value set as full ARN of Credential</param>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential.RoleArn">
+            <summary>
+            Role ARN
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential.PrincipalArn">
+            <summary>
+            Principal ARN
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential.Value">
+            <summary>
+            Credential in original string format.
+            </summary>
+        </member>
+        <member name="M:IBM.IAM.AWS.SecurityToken.SAML.SAMLCredential.ToString">
+            <summary>
+            Credential in original string format.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:IBM.IAM.AWS.SecurityToken.SAML.StoredInfo">
+            <summary>
+            Results of the authentication attempt.
+            <para type="description">Results of the authentication attempt.</para>
+            </summary>
+        </member>
+        <member name="T:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials">
+            <summary>
+            Authenticate a user against a IBM Identity and Access Management server and select role from SAML response.
+            <para type="synopsis">Authenticates a user against IBM IAM server to utilize roles granted in AWS via AWS PowerShell cmdlets.</para>
+            <para type="description">Authenticates a user against IBM IAM server to utilize roles granted in AWS via AWS PowerShell cmdlets.</para>
+            <example>
+              <title>Default usage.</title>
+              <code>
+              $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
+              Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
+              Set-AwsIbmSamlCredentials -EndpointName 'IBMEP'
+              </code>
+            </example>
+            <example>
+              <title>Specifying a predefined username and password.</title>
+              <code>
+              $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
+              Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
+              Set-AwsIbmSamlCredentials -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server') -RegionMap @{;"West_EU_"="eu-west-1";"West_"="us-west-1";"East_"="us-east-1"}
+              </code>
+            </example>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.EndpointName">
+            <summary>
+            The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.
+            <para type="description">The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.PrincipalARN">
+            <summary>
+            The AWS principal ARN for the role you want to assume.
+            <para type="description">The AWS principal ARN for the role you want to assume.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.RoleARN">
+            <summary>
+            The AWS role ARN for the role you want to assume.
+            <para type="description">The AWS role ARN for the role you want to assume.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.Credential">
+            <summary>
+            The credentials you want to use to auto-login to the IBM IAM server.
+            <para type="description">The credentials you want to use to auto-login to the IBM IAM server.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.StoreAs">
+            <summary>
+            Store a successful login into this profile name. Then use it with -ProfileName with AWS cmdlets.
+            <para type="description">Store a successful login into this profile name. Then use it with -ProfileName with AWS cmdlets.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.AwsAccountId">
+            <summary>
+            AWS account id to filter out roles only in a specific account.
+            <para type="description">AWS account id to filter out roles only in a specific account.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.HelpFindResource">
+            <summary>
+            Search for a specific keyword in a role to mark it as the default choice.
+            <para type="description">Search for a specific keyword in a role to mark it as the default choice.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.SingleMatch">
+            <summary>
+            If only one role matches the value in HelpFindResource, then select that single role and don't ask the user which to use.
+            <para type="description">If only one role matches the value in HelpFindResource, then select that single role and don't ask the user which to use.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.SecurityProtocol">
+            <summary>
+            Set what Security Protocol to use when connecting over HTTPS. Default: TLS 1.2
+            <para type="description">Set what Security Protocol to use when connecting over HTTPS. Default: TLS 1.2</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ErrorElement">
+            <summary>
+            Set what HTML element will contain a error response if there is a error from bad login. Default: P
+            <para type="description">Set what HTML element will contain a error response if there is a error from bad login. Default: P</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ErrorClass">
+            <summary>
+            Set what HTML class the ErrorElement will contain for a error response if there is a error from bad login. Default: error
+            <para type="description">Set what HTML class the ErrorElement will contain for a error response if there is a error from bad login. Default: error</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.StoreAllRoles">
+            <summary>
+            Assume role and store all roles in local AWS shared credential store
+            <para type="description">Assume role and store all roles in local AWS shared credential store</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.STSEndpointRegion">
+            <summary>
+            Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2
+            <para type="description">Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ProxyAddress">
+            <summary>
+            The address of the web proxy in Url form. (https://proxy.example.corp:8080)
+            <para type="description">The address of the proxy in Url form. (https://proxy.example.corp:8080)</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ProxyCredentials">
+            <summary>
+            The credentials of the web proxy.
+            <para type="description">The credentials of the web proxy.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ProxyBypassOnLocal">
+            <summary>
+            Indicates whether to bypass the proxy server for local addresses.
+            <para type="description">Indicates whether to bypass the proxy server for local addresses.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ProxyBypassList">
+            <summary>
+            A address that does not use the proxy server.
+            <para type="description">A address that does not use the proxy server.</para>
+            </summary>
+        </member>
+        <member name="P:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.RegionMap">
+            <summary>
+            Hashtable mapping containing role names to AWS region endpoint system names. Role names can be valid regex strings, first match is returned. Note: If you want an exact match, for the role name be sure to prefix with ^ and suffix with $.
+            <para type="description">Hashtable mapping containing role names to AWS region endpoint system names. Role names can be valid regex strings, first match is returned.</para>
+            </summary>
+        </member>
+        <member name="M:IBM.IAM.AWS.SecurityToken.SetAwsIbmSamlCredentials.ProcessRecord">
+            <summary>
+            
+            </summary>
+        </member>
+    </members>
+</doc>

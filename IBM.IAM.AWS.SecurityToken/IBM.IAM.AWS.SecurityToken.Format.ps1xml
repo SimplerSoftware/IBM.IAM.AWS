@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Configuration>
+  <ViewDefinitions>
+    <View>
+      <Name>storedinfo</Name>
+      <ViewSelectedBy>
+        <TypeName>IBM.IAM.AWS.SecurityToken.SAML.StoredInfo</TypeName>
+      </ViewSelectedBy>
+      <TableControl>
+        <TableHeaders>
+          <TableColumnHeader>
+            <Width>20</Width>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>25</Width>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>24</Width>
+          </TableColumnHeader>
+          <TableColumnHeader>
+            <Width>24</Width>
+          </TableColumnHeader>
+        </TableHeaders>
+        <TableRowEntries>
+          <TableRowEntry>
+            <TableColumnItems>
+              <TableColumnItem>
+                <PropertyName>StoreAs</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>RoleArn</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>Expires</PropertyName>
+              </TableColumnItem>
+              <TableColumnItem>
+                <PropertyName>AssertionExpires</PropertyName>
+              </TableColumnItem>
+            </TableColumnItems>
+          </TableRowEntry>
+        </TableRowEntries>
+      </TableControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>

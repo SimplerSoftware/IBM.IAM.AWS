@@ -12,30 +12,43 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Net.Http;
+using Amazon.SecurityToken.Model;
+using Amazon.Runtime.CredentialManagement;
+using Amazon;
+using Amazon.Runtime;
+using Amazon.SecurityToken;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
     internal class IBMSAMAuthenticationController : IAuthenticationController
     {
         const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36 Edge/15.15063";
+        private static Regex SAMLResponseField = new Regex("SAMLResponse\\W+value\\=\\\"([^\\\"]+)\\\"");
 
         PSCmdlet _cmdlet;
+        private string _region;
+        private IWebProxy _lastProxy;
+        internal string _lastAssertion;
+
         public SecurityProtocolType SecurityProtocol { get; set; }
         public string ErrorElement { get; set; } = "p";
         public string ErrorClass { get; set; } = "error";
+        public Action<string, LogType> Logger { get; set; } = null;
 
-        public IBMSAMAuthenticationController(PSCmdlet cmdlet)
+        public IBMSAMAuthenticationController(PSCmdlet cmdlet, string region)
         {
             _cmdlet = cmdlet;
+            _region = region;
         }
 
-        public string Authenticate(Uri identityProvider, ICredentials credentials, string authenticationType, WebProxy proxySettings)
+        public string Authenticate(Uri identityProvider, ICredentials credentials, string authenticationType, IWebProxy proxySettings)
         {
             string result = null;
             //ImpersonationState impersonationState = null;
             try
             {
                 CookieContainer cookies = new CookieContainer();
+                _lastProxy = proxySettings;
                 //if (credentials != null)
                 //{
                 //    impersonationState = ImpersonationState.Impersonate(credentials.GetCredential(identityProvider, authenticationType));
@@ -136,13 +149,20 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                             using (StreamReader streamReader = new StreamReader(httpRedirectResponse.GetResponseStream()))
                                             {
                                                 result = streamReader.ReadToEnd();
-                                                if (!IBMSAMLAuthenticationResponseParser.SAMLResponseField.IsMatch(result))
+                                                if (!SAMLResponseField.IsMatch(result))
                                                 {
                                                     // This should be asking for the MFA now
                                                     formResponse = GetFormData(result, values);
                                                 }
                                                 else
+                                                {
                                                     stopRequest = true;
+                                                    MatchCollection resposne = SAMLResponseField.Matches(result);
+                                                    foreach (Match data in resposne)
+                                                    {
+                                                        return _lastAssertion = data.Groups[1].Value;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -158,13 +178,20 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                     {
                                         throw new IbmIamException(errMsg);
                                     }
-                                    else if (!IBMSAMLAuthenticationResponseParser.SAMLResponseField.IsMatch(result))
+                                    else if (!SAMLResponseField.IsMatch(result))
                                     {
                                         // This should be asking for the MFA now
                                         formResponse = GetFormData(result, values);
                                     }
                                     else
+                                    {
                                         stopRequest = true;
+                                        MatchCollection resposne = SAMLResponseField.Matches(result);
+                                        foreach (Match data in resposne)
+                                        {
+                                            return _lastAssertion = data.Groups[1].Value;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -188,10 +215,10 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 //    impersonationState.Dispose();
                 //}
             }
-            return result;
+            throw new Amazon.Runtime.FederatedAuthenticationFailureException("Invalid credentials or an error occurred on server. No SAML response found from server's response.");
         }
 
-        private HttpWebResponse QueryProvider(Uri identityProvider, CookieContainer cookies, Uri referer, WebProxy proxySettings, bool autoRedirect = true)
+        private HttpWebResponse QueryProvider(Uri identityProvider, CookieContainer cookies, Uri referer, IWebProxy proxySettings, bool autoRedirect = true)
         {
             _cmdlet.WriteVerbose($"Querying identity provider on host '{identityProvider.Host}' via {identityProvider.Scheme}.");
             ServicePointManager.SecurityProtocol = this.SecurityProtocol;
@@ -213,7 +240,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             return rspns;
         }
 
-        private HttpWebResponse PostProvider(Uri identityProvider, CookieContainer cookies, Uri referer, Dictionary<string, string> formData, WebProxy proxySettings)
+        private HttpWebResponse PostProvider(Uri identityProvider, CookieContainer cookies, Uri referer, Dictionary<string, string> formData, IWebProxy proxySettings)
         {
             // Create POST data and convert it to a byte array.  
             StringBuilder postData = new StringBuilder();
@@ -392,6 +419,82 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             }
             return null;
         }
+
+        private void LoggerInternal(string message, LogType type = LogType.Info)
+        {
+            Logger?.Invoke(message, type);
+        }
+
+        private Credentials AssumeRole(ICredentialProfileStore config, SAMLCredential role, Func<SAMLCredential, RegionEndpoint> DecodeRegionFromRole = null)
+        {
+            return AssumeRole(config, null, role, DecodeRegionFromRole);
+        }
+        private Credentials AssumeRole(ICredentialProfileStore config, string profileName, SAMLCredential role, Func<SAMLCredential, RegionEndpoint> DecodeRegionFromRole = null)
+        {
+            var credential = AssumeRole(role, DecodeRegionFromRole);
+            AddRoleToConfig(config ?? throw new ArgumentNullException(nameof(config)),
+                profileName,
+                role ?? throw new ArgumentNullException(nameof(role)),
+                credential,
+                DecodeRegionFromRole);
+            return credential;
+        }
+        private Credentials AssumeRole(SAMLCredential role, Func<SAMLCredential, RegionEndpoint> DecodeRegionFromRole = null)
+        {
+            DecodeRegionFromRole = DecodeRegionFromRole ?? (x => null);
+
+            if (!role.PrincipalArn.ResourceType.Equals("saml-provider", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException($"Principal ARN Resource Type is [{role.PrincipalArn.ResourceType}], should be [saml-provider]");
+
+            LoggerInternal($"Found SAML Provider in {role.PrincipalArn}", LogType.Debug);
+
+            AnonymousAWSCredentials anonCred = new AnonymousAWSCredentials();
+            AmazonSecurityTokenServiceConfig cfg = new AmazonSecurityTokenServiceConfig();
+            cfg.RegionEndpoint = DecodeRegionFromRole(role) ?? RegionEndpoint.GetBySystemName(this._region ?? cfg.RegionEndpoint.SystemName);
+            if (this._lastProxy != null)
+                cfg.SetWebProxy(this._lastProxy);
+
+            AmazonSecurityTokenServiceClient sts = new AmazonSecurityTokenServiceClient(anonCred, cfg);
+
+            LoggerInternal($"Calling AssumeRoleWithSAML at the {cfg.RegionEndpoint.SystemName} region to retrieve Access and Secret Keys for {role.RoleArn.Resource}.", LogType.Debug);
+            AssumeRoleWithSAMLResponse response = AsyncHelpers.RunSync(async () => await sts.AssumeRoleWithSAMLAsync(new AssumeRoleWithSAMLRequest()
+            {
+                PrincipalArn = role.PrincipalArn.OriginalString,
+                RoleArn = role.RoleArn.OriginalString,
+                SAMLAssertion = this._lastAssertion,
+                DurationSeconds = 3600
+            }) ?? throw new Exception("No Credentials returned from AWS"));
+
+            return response.Credentials;
+        }
+
+        private void AddRoleToConfig(ICredentialProfileStore config, string profileName, SAMLCredential role, Credentials t, Func<SAMLCredential, RegionEndpoint> DecodeRegionFromRole = null)
+        {
+            DecodeRegionFromRole = DecodeRegionFromRole ?? (x => null);
+
+            if (!config.TryGetProfile(profileName ?? role.RoleArn.Resource, out CredentialProfile profile))
+            {
+                var options = new CredentialProfileOptions();
+                profile = new CredentialProfile(role.RoleArn.Resource, options);
+            }
+            profile.Options.AccessKey = t.AccessKeyId;
+            profile.Options.SecretKey = t.SecretAccessKey;
+            profile.Options.Token = t.SessionToken;
+
+            var role_region = DecodeRegionFromRole(role);
+            if (role_region != null)
+            {
+                LoggerInternal($"Adding auto-magic region option to {role.RoleArn.Resource}", LogType.Debug);
+                profile.Region = role_region;
+            }
+            else if (!string.IsNullOrWhiteSpace(this._region))
+            {
+                LoggerInternal($"Adding region option to {role.RoleArn.Resource}", LogType.Debug);
+                profile.Region = RegionEndpoint.GetBySystemName(this._region);
+            }
+            config.RegisterProfile(profile);
+        }
+
     }
 
     class FormResponse
