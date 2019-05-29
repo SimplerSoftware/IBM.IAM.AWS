@@ -16,8 +16,8 @@
     <PackageLicenseUrl>https://github.com/Simpler-Software/IBM.IAM.AWS/blob/master/LICENSE.md</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Simpler-Software/IBM.IAM.AWS</PackageProjectUrl>
     <PackageIconUrl>https://sdk-for-net.amazonwebservices.com/images/AWSLogo128x128.png</PackageIconUrl>
-    <AssemblyVersion>1.0.1905.42</AssemblyVersion>
-    <FileVersion>1.0.1905.42</FileVersion>
+    <AssemblyVersion>1.0.1905.43</AssemblyVersion>
+    <FileVersion>1.0.1905.43</FileVersion>
     <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
