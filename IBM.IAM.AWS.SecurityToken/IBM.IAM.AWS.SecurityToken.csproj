@@ -1,13 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net462</TargetFramework>
     <AssemblyName>IBM.IAM.AWS.SecurityToken</AssemblyName>
-    <FileUpgradeFlags>40</FileUpgradeFlags>
-    <UpgradeBackupLocation>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\Backup\</UpgradeBackupLocation>
-    <OldToolsVersion>15.0</OldToolsVersion>
     <Description>AWS SAML integration with IBM's Identity and Access Management</Description>
     <Product>IBM - Identity and Access Management SAML</Product>
-    <Version>1.0.1905.17</Version>
+    <Version>1.0.1905.49</Version>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>John W Carew</Authors>
     <Company>Simpler Software</Company>
@@ -16,8 +13,8 @@
     <PackageLicenseUrl>https://github.com/Simpler-Software/IBM.IAM.AWS/blob/master/LICENSE.md</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Simpler-Software/IBM.IAM.AWS</PackageProjectUrl>
     <PackageIconUrl>https://sdk-for-net.amazonwebservices.com/images/AWSLogo128x128.png</PackageIconUrl>
-    <AssemblyVersion>1.0.1905.43</AssemblyVersion>
-    <FileVersion>1.0.1905.43</FileVersion>
+    <AssemblyVersion>1.0.1905.49</AssemblyVersion>
+    <FileVersion>1.0.1905.49</FileVersion>
     <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -28,13 +25,9 @@
     <DocumentationFile>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="SAML\ImpersonationState.cs" />
-    <Compile Remove="SAML\NativeMethods.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="AWSSDK.Core" Version="3.3.101.17">
     </PackageReference>
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.101.7">
+    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.101.8">
     </PackageReference>
     <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2">

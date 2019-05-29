@@ -41,7 +41,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             _region = region;
         }
 
-        public string Authenticate(Uri identityProvider, ICredentials credentials, string authenticationType, IWebProxy proxySettings)
+        public string Authenticate(Uri identityProvider, ICredentials credentials, string authenticationType, WebProxy proxySettings)
         {
             string result = null;
             //ImpersonationState impersonationState = null;
@@ -452,7 +452,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             AmazonSecurityTokenServiceConfig cfg = new AmazonSecurityTokenServiceConfig();
             cfg.RegionEndpoint = DecodeRegionFromRole(role) ?? RegionEndpoint.GetBySystemName(this._region ?? cfg.RegionEndpoint.SystemName);
             if (this._lastProxy != null)
-                cfg.SetWebProxy(this._lastProxy);
+                cfg.SetWebProxy(this._lastProxy as WebProxy);
 
             AmazonSecurityTokenServiceClient sts = new AmazonSecurityTokenServiceClient(anonCred, cfg);
 

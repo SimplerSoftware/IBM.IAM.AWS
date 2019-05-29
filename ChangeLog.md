@@ -19,6 +19,9 @@
 -->
 ## Upcoming Release
 
+## 2019.05.29 - 1.0.1905.49
+* Revert back to .Net Framework 4.6.2 - AWSSDK.SecurityToken does not work correctly under .Net Standard 2.0 yet...
+
 ## 2019.05.29 - 1.0.1905.43
 * Add full proxy support for SAML client and STS client.
 * Moved project to .Net Standard type
