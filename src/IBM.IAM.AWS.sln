@@ -14,8 +14,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IBM.IAM.AWS.SecurityToken",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{628D1666-0336-4795-994C-F8069446621E}"
 	ProjectSection(SolutionItems) = preProject
-		PublishToGallery.ps1 = PublishToGallery.ps1
+		..\build\PublishToGallery.ps1 = ..\build\PublishToGallery.ps1
+		..\build\Update-ModuleManifest.ps1 = ..\build\Update-ModuleManifest.ps1
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3D87A26F-07A0-42C2-BE21-7C1690764C6C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,6 +33,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A4B2259D-4946-4AEC-817E-93940CFE4223} = {3D87A26F-07A0-42C2-BE21-7C1690764C6C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6566402C-9063-4AE6-A978-B6C60B6FFC9C}
