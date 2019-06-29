@@ -10,18 +10,18 @@ if ($env:APPVEYOR_BUILD_VERSION){
 	$ModuleManifest = $ModuleManifest -replace "(Generated on:)\W*(.*)", "`$1 $date"
 	$ModuleManifest | Out-File -LiteralPath $ModuleManifestPath
 }
-$NuGetApiKey = $null
+$ApiKey = $null
 if ($Env:NuGetApiKey){
-	$NuGetApiKey = $Env:NuGetApiKey
+	$ApiKey = $Env:NuGetApiKey
 } elseif (Test-Path '..\.Nuget.key') {
-	$NuGetApiKey = (Get-Content -Raw '..\.Nuget.key')
+	$ApiKey = (Get-Content -Raw '..\.Nuget.key')
 }
 
-if ($NuGetApiKey){
+if ($ApiKey){
 	if ($Module -ilike "*\*"){
-		Publish-Module -Path $Module -NuGetApiKey $NuGetApiKey
+		Publish-Module -Path $Module -NuGetApiKey $ApiKey
 	} else{
-		Publish-Module -Name $Module -NuGetApiKey $NuGetApiKey
+		Publish-Module -Name $Module -NuGetApiKey $ApiKey
 	}
 } else {
 	Write-Error "Nuget API key is missing, please create the file and add one line that contains your API key for nuget or set the environment variable [NuGetApiKey]."
