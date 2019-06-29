@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27428.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29020.237
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E3388981-904D-45C3-8D34-8FEA5B13C250}"
 	ProjectSection(SolutionItems) = preProject
@@ -11,6 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E3388981-9
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IBM.IAM.AWS.SecurityToken", "IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.csproj", "{A4B2259D-4946-4AEC-817E-93940CFE4223}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{628D1666-0336-4795-994C-F8069446621E}"
+	ProjectSection(SolutionItems) = preProject
+		PublishToGallery.ps1 = PublishToGallery.ps1
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
