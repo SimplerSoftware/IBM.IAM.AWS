@@ -5,9 +5,10 @@ VisualStudioVersion = 16.0.29020.237
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{E3388981-904D-45C3-8D34-8FEA5B13C250}"
 	ProjectSection(SolutionItems) = preProject
-		ChangeLog.md = ChangeLog.md
-		LICENSE.md = LICENSE.md
-		README.md = README.md
+		..\ChangeLog.md = ..\ChangeLog.md
+		..\CODE_OF_CONDUCT.md = ..\CODE_OF_CONDUCT.md
+		..\LICENSE.md = ..\LICENSE.md
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IBM.IAM.AWS.SecurityToken", "IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.csproj", "{A4B2259D-4946-4AEC-817E-93940CFE4223}"
