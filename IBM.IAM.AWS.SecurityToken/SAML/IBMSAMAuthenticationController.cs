@@ -41,7 +41,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             _region = region;
         }
 
-        public string Authenticate(Uri identityProvider, ICredentials credentials, string authenticationType, WebProxy proxySettings)
+        public string Authenticate(Uri identityProvider, ICredentials credentials, string authenticationType, IWebProxy proxySettings)
         {
             string result = null;
             //ImpersonationState impersonationState = null;
@@ -58,10 +58,13 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                     using (StreamReader streamReader = new StreamReader(httpWebResponse.GetResponseStream()))
                         result = streamReader.ReadToEnd();
                     _cmdlet.WriteVerbose($"Retrieved response from identity provider.");
-                    var creds = credentials as NetworkCredential;
                     Dictionary<string, string> values = new Dictionary<string, string>();
-                    values.Add("username", creds.UserName);
-                    values.Add("password", creds.Password);
+                    if (credentials != null)
+                    {
+                        var creds = credentials as NetworkCredential;
+                        values.Add("username", creds.UserName);
+                        values.Add("password", creds.Password);
+                    }
                     var formResponse = GetFormData(result, values);
 
                     bool stopRequest = false;
@@ -77,8 +80,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                 if (!string.IsNullOrWhiteSpace(location))
                                 {
                                     Uri uLocation = new Uri(location);
-                                    //uLocation.Query;
-                                    var qry = uLocation.ParseQueryString();
+                                    var qry = new UrlEncodingParser(uLocation);
                                     if (qry.AllKeys.Contains("TAM_OP", StringComparer.CurrentCultureIgnoreCase))
                                     {
                                         string TAM_OP = qry["TAM_OP"];

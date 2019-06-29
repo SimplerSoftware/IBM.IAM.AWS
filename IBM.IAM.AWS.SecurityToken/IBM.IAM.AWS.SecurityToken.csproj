@@ -1,22 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>IBM.IAM.AWS.SecurityToken</AssemblyName>
     <Description>AWS SAML integration with IBM's Identity and Access Management</Description>
     <Product>IBM - Identity and Access Management SAML</Product>
-    <Version>1.0.1905.49</Version>
+    <Version>1.0.1906.66</Version>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>John W Carew</Authors>
     <Company>Simpler Software</Company>
     <Copyright>(c) 2019 Simpler Software. All rights reserved.</Copyright>
     <PackageTags>AWS;SAML;IBM;IAM</PackageTags>
-    <PackageLicenseUrl>https://github.com/Simpler-Software/IBM.IAM.AWS/blob/master/LICENSE.md</PackageLicenseUrl>
+    <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Simpler-Software/IBM.IAM.AWS</PackageProjectUrl>
     <PackageIconUrl>https://sdk-for-net.amazonwebservices.com/images/AWSLogo128x128.png</PackageIconUrl>
-    <AssemblyVersion>1.0.1905.49</AssemblyVersion>
-    <FileVersion>1.0.1905.49</FileVersion>
+    <AssemblyVersion>1.0.1906.66</AssemblyVersion>
+    <FileVersion>1.0.1906.66</FileVersion>
     <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
@@ -25,11 +26,8 @@
     <DocumentationFile>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.Core" Version="3.3.101.17">
+    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.101.10">
     </PackageReference>
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.101.8">
-    </PackageReference>
-    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.7" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2">
     </PackageReference>
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0">
@@ -49,6 +47,10 @@
     </None>
     <None Update="LICENSE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -175,6 +175,21 @@ namespace IBM.IAM.AWS.SecurityToken
         public Hashtable RegionMap { get; set; } = null;
 
         /// <summary>
+        /// Duration in minutes how long the credentials session token will be valid for. <see cref="UseAssertionDocumentDuration"/> has precedence if set.
+        /// <para type="description">Duration in minutes how long the credentials session token will be valid for. <see cref="UseAssertionDocumentDuration"/> has precedence if set.</para>
+        /// </summary>
+        [Parameter()]
+        [ValidateRange(15, 720)]
+        public int TokenDurationInMinutes { get; set; } = 60;
+
+        /// <summary>
+        /// Use the duration time that was applied for the SAML assertion document for the token duration.
+        /// <para type="description">Use the duration time that was applied for the SAML assertion document for the token duration.</para>
+        /// </summary>
+        [Parameter()]
+        public SwitchParameter UseAssertionDocumentDuration { get; set; }
+
+        /// <summary>
         /// 
         /// </summary>
         protected override void ProcessRecord()
@@ -260,7 +275,7 @@ namespace IBM.IAM.AWS.SecurityToken
                         try
                         {
                             base.WriteVerbose($"Saving role '{role.Value}' to profile '{role.RoleArn.Resource}'.");
-                            creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role);
+                            creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
                         }
                         catch (ExpiredTokenException ex)
                         {
@@ -269,7 +284,7 @@ namespace IBM.IAM.AWS.SecurityToken
                             // Updating Assertion Document
                             sAMLAssertion = _awsAuthController.GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
                             this.WriteVerbose("Retrying this operation");
-                            creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role);
+                            creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
                             this.WriteVerbose($"RetryResult: {creds}");
                         }
                         catch (AmazonSecurityTokenServiceException ex)
@@ -351,18 +366,24 @@ namespace IBM.IAM.AWS.SecurityToken
                         roleSet = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).ToList();
 
                     Collection<ChoiceDescription> collection = new Collection<ChoiceDescription>();
-                    char c = 'A';
+                    char c = '!';
                     foreach (var cred in roleSet.OrderBy(r => r.RoleArn.AccountId).ThenBy(r => r.RoleArn.Resource))
                     {
                         string label;
-                        if (sAMLAssertion.RoleSet.Count <= 26 && c <= 'Z')
+                        if (roleSet.Count <= 61 && c <= '_')
                         {
+                            if (c == '?')
+                                c++;
                             label = $"&{c} - {cred.RoleArn.Resource}";
                             c++;
                         }
                         else
                             label = cred.RoleArn.Resource;
-
+                        if (label.Length < (this.Host.UI.RawUI.WindowSize.Width - 4) &&
+                            roleSet.Count <= 61)
+                        {
+                            label += $"{new string(' ', this.Host.UI.RawUI.WindowSize.Width - label.Length - 4)}.";
+                        }
                         collection.Add(new ChoiceDescription(label, cred.Value));
                     }
 
@@ -380,6 +401,7 @@ namespace IBM.IAM.AWS.SecurityToken
                         else if (fnd.Length >= 1)
                             idxDefault = collection.IndexOf(fnd[0]); // Pre-select the first role found with the HelpFindResource's value
                     }
+
                     if (userChooses)
                     {
                         int index = base.Host.UI.PromptForChoice("Select Role", "Select the role to be assumed when this profile is active", collection, idxDefault);
@@ -394,7 +416,7 @@ namespace IBM.IAM.AWS.SecurityToken
             base.WriteVerbose($"Saving to profile '{this.StoreAs ?? role.RoleArn.Resource}'.");
 
             var config = new SharedCredentialsFile();
-            var creds = AssumeRole(sts, config, this.StoreAs ?? role.RoleArn.Resource, sAMLAssertion, role);
+            var creds = AssumeRole(sts, config, this.StoreAs ?? role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
 
             base.WriteVerbose($"Stored AWS Credentials as {this.StoreAs ?? role.RoleArn.Resource}.\r\nUse 'Set-AWSCredentials -ProfileName {this.StoreAs ?? role.RoleArn.Resource}' to load this profile and obtain temporary AWS credentials.");
 
@@ -456,18 +478,29 @@ namespace IBM.IAM.AWS.SecurityToken
             return new SAMLAttributeStatement(assertion["AttributeStatement", SAMLAssertion.AssertionNamespace], issueInstant, xmlNamespaceManager);
         }
 
-        SAMLImmutableCredentials AssumeRole(IAmazonSecurityTokenService sts, ICredentialProfileStore config, string profileName, Amazon.SecurityToken.SAML.SAMLAssertion assertion, SAMLCredential role, int duration = 60)
+        SAMLImmutableCredentials AssumeRole(IAmazonSecurityTokenService sts, ICredentialProfileStore config, string profileName, Amazon.SecurityToken.SAML.SAMLAssertion assertion, SAMLCredential role, int? durationinMinutes = null)
         {
-            var credential = AssumeRole(sts, assertion, role, duration);
+            var credential = AssumeRole(sts, assertion, role, durationinMinutes);
             AddRoleToConfig(config ?? throw new ArgumentNullException(nameof(config)),
                 profileName,
                 role ?? throw new ArgumentNullException(nameof(role)),
                 credential);
             return credential;
         }
-        SAMLImmutableCredentials AssumeRole(IAmazonSecurityTokenService sts, Amazon.SecurityToken.SAML.SAMLAssertion assertion, SAMLCredential role, int duration = 60)
+        SAMLImmutableCredentials AssumeRole(IAmazonSecurityTokenService sts, Amazon.SecurityToken.SAML.SAMLAssertion assertion, SAMLCredential role, int? durationinMinutes = null)
         {
-            return assertion.GetRoleCredentials(sts, role.Value, TimeSpan.FromMinutes(duration));
+            if (this.UseAssertionDocumentDuration)
+            {
+                WriteVerbose($"Using assertion document duration");
+                var authnStatement = GetSAMLAuthnStatement(assertion.AssertionDocument);
+                var attributeStatement = GetSAMLAttributeStatement(assertion.AssertionDocument);
+                var assertionExpires = authnStatement.SessionNotOnOrAfter > attributeStatement.SessionNotOnOrAfter ? authnStatement.SessionNotOnOrAfter : attributeStatement.SessionNotOnOrAfter;
+                WriteVerbose($"Assertion Expires: {assertionExpires}");
+                durationinMinutes = (int)(assertionExpires - DateTime.Now).TotalMinutes - 1; // Shave off a minute just so there is no race condition.
+            }
+            WriteVerbose($"Duration Minutes: {(durationinMinutes ?? 60)}");
+            WriteVerbose($"Duration Hours: {(durationinMinutes ?? 60) / 60}");
+            return assertion.GetRoleCredentials(sts, role.Value, TimeSpan.FromMinutes(durationinMinutes ?? 60));
         }
         private void AddRoleToConfig(ICredentialProfileStore config, string profileName, SAMLCredential role, SAMLImmutableCredentials t)
         {
@@ -480,17 +513,23 @@ namespace IBM.IAM.AWS.SecurityToken
             profile.Options.SecretKey = t.SecretKey;
             profile.Options.Token = t.Token;
 
-            var role_region = GetRoleRegion(role);
-            if (role_region != null)
+            if (profile.Region == null)
             {
-                WriteDebug($"Adding auto-magic region option to {profile.Name}");
-                profile.Region = role_region;
+                var role_region = GetRoleRegion(role);
+                if (role_region != null)
+                {
+                    WriteDebug($"Adding auto-magic region option to {profile.Name}");
+                    profile.Region = role_region;
+                }
+                else if (!string.IsNullOrWhiteSpace(this.STSEndpointRegion))
+                {
+                    WriteDebug($"Adding STS region option to {profile.Name}");
+                    profile.Region = RegionEndpoint.GetBySystemName(this.STSEndpointRegion);
+                }
             }
-            else if (!string.IsNullOrWhiteSpace(this.STSEndpointRegion))
-            {
-                WriteDebug($"Adding STS region option to {profile.Name}");
-                profile.Region = RegionEndpoint.GetBySystemName(this.STSEndpointRegion);
-            }
+            else
+                WriteVerbose("Region already set for profile, skipping region lookup.");
+
             config.RegisterProfile(profile);
         }
 

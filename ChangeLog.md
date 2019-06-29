@@ -19,6 +19,21 @@
 -->
 ## Upcoming Release
 
+## 2019.06.28 - 1.0.1906.66
+* Add full proxy support for SAML client and STS client.
+* Moved project to .Net Standard type
+* Support for PowerShell & PowerShell Core
+* Refactor code to use as much of AWS libraries as possible.
+* Add Get-AwsIbmSamlRoles CmdLet - Will just pull the SAML doc and list roles in doc.
+* Add custom format view for returned types
+* Add StoreAllRoles parameter switch to Set-AwsIbmSamlCredentials - will store all roles using the role name.
+* Use shared AWS credential config location to store profiles
+* Add RegionMap parameter to Set-AwsIbmSamlCredentials
+* Add TokenDurationInMinutes parameter to Set-AwsIbmSamlCredentials.
+* Add UseAssertionDocumentDuration parameter switch to Set-AwsIbmSamlCredentials.
+
+> NOTE: If you are using AWS PowerShell modules in the same session. Be sure you are using the `AWSPowerShell.NetCore` v3.3.522.0 module and **NOT** `AWSPowerShell`.
+
 ## 2019.05.29 - 1.0.1905.49
 * Revert back to .Net Framework 4.6.2 - AWSSDK.SecurityToken does not work correctly under .Net Standard 2.0 yet...
 
