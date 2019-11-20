@@ -26,14 +26,14 @@
     <DocumentationFile>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.101.10">
+    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.103.15">
     </PackageReference>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2">
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3">
     </PackageReference>
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="XmlDoc2CmdletDoc" Version="0.2.12">
+    <PackageReference Include="XmlDoc2CmdletDoc" Version="0.2.13">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
