@@ -15,6 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IBM.IAM.AWS.SecurityToken",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{628D1666-0336-4795-994C-F8069446621E}"
 	ProjectSection(SolutionItems) = preProject
+		..\build\Get-ModuleManifestVersion.ps1 = ..\build\Get-ModuleManifestVersion.ps1
 		..\build\PublishToGallery.ps1 = ..\build\PublishToGallery.ps1
 		..\build\Update-ModuleManifest.ps1 = ..\build\Update-ModuleManifest.ps1
 	EndProjectSection
