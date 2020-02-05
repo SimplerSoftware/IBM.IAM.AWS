@@ -41,6 +41,11 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         /// </summary>
         public string ResourceDivider { get; private set; }
 
+        /// <summary>
+        /// Parse a AWS ARN string.
+        /// </summary>
+        /// <param name="arnString"></param>
+        /// <returns></returns>
         public static AmazonResourceName Parse(string arnString)
         {
             Regex rgxARN = new Regex("arn:(?<partition>[^:]*):(?<service>[^:]*):(?<region>[^:]*):(?<accountid>[^:]*):(?<resourcetype>[^:/]*)(?<resourcedivider>/|:)?(?<resource>[^:]*)$");
