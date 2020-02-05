@@ -5,14 +5,14 @@
     <Description>AWS SAML integration with IBM's Identity and Access Management</Description>
     <Product>IBM - Identity and Access Management SAML</Product>
     <Version>1.0.2002</Version>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>John W Carew</Authors>
     <Company>Simpler Software</Company>
     <Copyright>(c) 2019 Simpler Software. All rights reserved.</Copyright>
     <PackageTags>AWS;SAML;IBM;IAM</PackageTags>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Simpler-Software/IBM.IAM.AWS</PackageProjectUrl>
-    <PackageIconUrl>https://sdk-for-net.amazonwebservices.com/images/AWSLogo128x128.png</PackageIconUrl>
+    <PackageIcon>AWSLogo128x128.png</PackageIcon>
     <AssemblyVersion>1.0.2002.66</AssemblyVersion>
     <FileVersion>1.0.2002.66</FileVersion>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -20,13 +20,38 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
+    <NuspecFile>package.nuspec</NuspecFile>
+    <PackageIconUrl />
   </PropertyGroup>
+  
+  <Target Name="SetNuspecProperties" BeforeTargets="GenerateNuspec" Condition="$(NuspecFile) != ''">
+    <PropertyGroup>
+      <NuspecBasePath>$(OutDir)</NuspecBasePath>
+      <NuspecProperties>$(NuspecProperties);id=$(PackageId)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);config=$(Configuration)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);version=$(PackageVersion)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);authors=$(Authors.Replace('&amp;', '&amp;amp;'))</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);description=$(Description.Replace('&amp;', '&amp;amp;'))</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);company=$(Company)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);projectUrl=$(PackageProjectUrl)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);iconUrl=$(PackageIconUrl)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);title=$(Product.Replace('&amp;', '&amp;amp;'))</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);copyright=$(Copyright)</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);tags=$(PackageTags.Replace(';', ' '))</NuspecProperties>
+      <NuspecProperties>$(NuspecProperties);repositoryUrl=$(RepositoryUrl)</NuspecProperties>
+    </PropertyGroup>
+  </Target>
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile></DocumentationFile>
+    <NoWarn>1701;1702;NU5100</NoWarn>
   </PropertyGroup>
+  
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile></DocumentationFile>
+    <NoWarn>1701;1702;NU5100</NoWarn>
   </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3">
@@ -41,20 +66,37 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="IBM.IAM.AWS.SecurityToken.Format.ps1xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="IBM.IAM.AWS.SecurityToken.Format.ps1xml">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
     <None Update="IBM.IAM.AWS.SecurityToken.psd1">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="IBM.IAM.AWS.SecurityToken.psd1">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Update="AWSLogo128x128.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="AWSLogo128x128.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
     <None Update="LICENSE.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="LICENSE.txt">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="REM IF DEFINED CI exit&#xD;&#xA;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -NoProfile -Command &quot;$v = ..\..\build\Get-ModuleManifestVersion.ps1 -ManifestPath .\$(TargetName).psd1;$env:Version&quot;') do set &quot;PSModuleVersion=%25%25~A&quot;&#xD;&#xA;set module=&quot;$(TargetName)&quot;&#xD;&#xA;if defined PSModuleVersion set module=%25module%25\%25PSModuleVersion%25&#xD;&#xA;&#xD;&#xA;set &quot;Personal=&quot;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -NoProfile -Command &quot;[Environment]::GetFolderPath('MyDocuments') | Out-String&quot;') do set &quot;Personal=%25%25~A&quot;&#xD;&#xA;if not defined Personal exit /b 1&#xD;&#xA;echo Coping to %25Personal%25\WindowsPowerShell\Modules\%25module%25\&#xD;&#xA;&#xD;&#xA;del /Q &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\*.*&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.psd1&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.ps1xml&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.txt&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*Help.xml&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;" />
+
+  <Target Name="PublishPack" AfterTargets="Pack">
+    <Exec Command="IF DEFINED CI exit&#xD;&#xA;&#xD;&#xA;set &quot;module=$(TargetName)&quot;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -NoProfile -Command &quot;$v = ..\..\build\Get-ModuleManifestVersion.ps1 -ManifestPath .\$(TargetName).psd1;$env:Version&quot;') do set &quot;PSModuleVersion=%25%25~A&quot;&#xD;&#xA;if defined PSModuleVersion set module=%25module%25\%25PSModuleVersion%25&#xD;&#xA;&#xD;&#xA;set &quot;Personal=&quot;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -NoProfile -Command &quot;[Environment]::GetFolderPath('MyDocuments') | Out-String&quot;') do set &quot;Personal=%25%25~A&quot;&#xD;&#xA;if not defined Personal exit /b 1&#xD;&#xA;echo Coping to %25Personal%25\WindowsPowerShell\Modules\%25module%25\&#xD;&#xA;&#xD;&#xA;del /Q &quot;$(OutDir)..\*.zip&quot;&#xD;&#xA;rename &quot;$(OutDir)..\*.nupkg&quot; *.zip&#xD;&#xA;powershell -NoProfile -Command &quot;Expand-Archive '$(OutDir)..\$(TargetName).*.zip' -DestinationPath '%25Personal%25\WindowsPowerShell\Modules\%25module%25\' -Force&quot;&#xD;&#xA;rmdir /S /Q &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\_rels&quot;&#xD;&#xA;rmdir /S /Q &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\package&quot;&#xD;&#xA;del /Q &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\[Content_Types].xml&quot;&#xD;&#xA;rename &quot;$(OutDir)..\*.zip&quot; *.nupkg" />
   </Target>
+
 </Project>
