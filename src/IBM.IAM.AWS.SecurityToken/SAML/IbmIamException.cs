@@ -11,5 +11,13 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             : base(message)
         {
         }
+
+        internal IbmIamException()
+        {
+        }
+
+        internal IbmIamException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }

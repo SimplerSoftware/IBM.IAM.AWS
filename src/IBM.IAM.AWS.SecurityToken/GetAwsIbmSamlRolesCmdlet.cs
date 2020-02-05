@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
@@ -53,6 +54,7 @@ namespace IBM.IAM.AWS.SecurityToken
         /// <para type="description">AWS account id to filter out roles only in a specific account.</para>
         /// </summary>
         [Parameter()]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "CmdLet properties do not return values.")]
         public string[] AwsAccountId { get; set; }
 
         /// <summary>
@@ -104,11 +106,14 @@ namespace IBM.IAM.AWS.SecurityToken
         /// <para type="description">A address that does not use the proxy server.</para>
         /// </summary>
         [Parameter()]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "CmdLet properties do not return values.")]
         public string[] ProxyBypassList { get; set; }
+
 
         /// <summary>
         /// 
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Exceptions get written to PS error stream.")]
         protected override void ProcessRecord()
         {
             try
@@ -116,32 +121,35 @@ namespace IBM.IAM.AWS.SecurityToken
                 NetworkCredential networkCredential = null;
                 if (this.Credential != null)
                 {
-                    base.WriteVerbose("Network Credentials given, will attempt to use them.");
+                    base.WriteVerbose(Lang.UseGivenNetworkCredentials);
                     networkCredential = this.Credential.GetNetworkCredential();
                 }
 
                 ServicePointManager.SecurityProtocol = this.SecurityProtocol;
-                IbmIam2AwsSamlScreenScrape aad2Aws = new IbmIam2AwsSamlScreenScrape(this);
-                aad2Aws.ErrorClass = this.ErrorClass;
-                aad2Aws.ErrorElement = this.ErrorElement;
-                aad2Aws.Proxy = this.GetWebProxy();
-                aad2Aws.Credentials = networkCredential;
-                aad2Aws.Logger = (m, t) => {
-                    switch (t)
+                IbmIam2AwsSamlScreenScrape aad2Aws = new IbmIam2AwsSamlScreenScrape(this)
+                {
+                    ErrorClass = this.ErrorClass,
+                    ErrorElement = this.ErrorElement,
+                    Proxy = this.GetWebProxy(),
+                    Credentials = networkCredential,
+                    Logger = (m, t) =>
                     {
-                        case LogType.Debug:
-                            this.WriteVerbose(m);
-                            break;
-                        case LogType.Info:
-                            this.Host.UI.WriteLine(m);
-                            //_cmdlet.WriteInformation(new InformationRecord(m, ""));
-                            break;
-                        case LogType.Warning:
-                            this.WriteWarning(m);
-                            break;
-                        case LogType.Error:
-                            this.WriteError(new ErrorRecord(new Exception(m), "5000", ErrorCategory.NotSpecified, this));
-                            break;
+                        switch (t)
+                        {
+                            case LogType.Debug:
+                                this.WriteVerbose(m);
+                                break;
+                            case LogType.Info:
+                                this.Host.UI.WriteLine(m);
+                                //_cmdlet.WriteInformation(new InformationRecord(m, ""));
+                                break;
+                            case LogType.Warning:
+                                this.WriteWarning(m);
+                                break;
+                            case LogType.Error:
+                                this.WriteError(new ErrorRecord(new Exception(m), "5000", ErrorCategory.NotSpecified, this));
+                                break;
+                        }
                     }
                 };
 
@@ -167,7 +175,7 @@ namespace IBM.IAM.AWS.SecurityToken
             }
             catch (Exception ex)
             {
-                base.WriteError(new ErrorRecord(new ArgumentException("Unable to set credentials: " + ex.Message, ex), "ArgumentException", ErrorCategory.InvalidArgument, this));
+                base.WriteError(new ErrorRecord(new ArgumentException(string.Format(CultureInfo.CurrentCulture, Lang.ErrorUnableSetCredentials, ex.Message), ex), "ArgumentException", ErrorCategory.InvalidArgument, this));
             }
         }
 
@@ -179,26 +187,6 @@ namespace IBM.IAM.AWS.SecurityToken
             return null;
         }
         internal bool HasWebProxy { get { return this.ProxyAddress != null; } }
-
-        private bool ParameterWasBound(string parameterName)
-        {
-            return base.MyInvocation.BoundParameters.ContainsKey(parameterName);
-        }
-        private void ThrowExecutionError(string message, object errorSource)
-        {
-            this.ThrowExecutionError(message, errorSource, null);
-        }
-        private void ThrowExecutionError(string message, object errorSource, Exception innerException)
-        {
-            base.ThrowTerminatingError(
-                new ErrorRecord(
-                    new InvalidOperationException(message, innerException), 
-                    (innerException == null) ? "InvalidOperationException" : innerException.GetType().ToString(), 
-                    ErrorCategory.InvalidOperation, 
-                    errorSource
-                    )
-                );
-        }
 
     }
 }

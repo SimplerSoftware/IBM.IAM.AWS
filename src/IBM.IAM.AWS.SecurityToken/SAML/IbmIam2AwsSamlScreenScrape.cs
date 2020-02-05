@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -16,8 +17,8 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
     class IbmIam2AwsSamlScreenScrape
     {
         const string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36 Edge/15.15063";
-        private static Regex SAMLResponseField = new Regex("SAMLResponse\\W+value\\=\\\"([^\\\"]+)\\\"");
-        private PSCmdlet _cmdlet;
+        private static readonly Regex SAMLResponseField = new Regex("SAMLResponse\\W+value\\=\\\"([^\\\"]+)\\\"");
+        private readonly PSCmdlet _cmdlet;
 
         public string Assertion { get; private set; }
         public SecurityProtocolType SecurityProtocol { get; set; }
@@ -47,12 +48,12 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 {
                     using (StreamReader streamReader = new StreamReader(httpWebResponse.GetResponseStream()))
                         result = streamReader.ReadToEnd();
-                    LoggerInternal($"Retrieved response from identity provider.", LogType.Debug);
+                    LoggerInternal(Lang.DebugIdpResponded, LogType.Debug);
                     Dictionary<string, string> values = new Dictionary<string, string>();
                     if (Credentials != null)
                     {
-                        values.Add("username", Credentials.UserName);
-                        values.Add("password", Credentials.Password);
+                        values.Add("USERNAME", Credentials.UserName);
+                        values.Add("PASSWORD", Credentials.Password);
                     }
                     var formResponse = GetFormData(result, values);
 
@@ -74,63 +75,63 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                                     {
                                         string TAM_OP = qry["TAM_OP"];
                                         //https://www.ibm.com/support/knowledgecenter/en/SSPREK_9.0.0/com.ibm.isam.doc/wrp_config/concept/con_op_redir.html
-                                        switch (TAM_OP.ToLower())
+                                        switch (TAM_OP.ToUpperInvariant())
                                         {
-                                            case "acct_inactivated":
-                                                throw new IbmIamException("User has provided correct authentication details, but nsAccountLock is set to true for the user in Sun Java™ System Directory Server.");
-                                            case "acct_locked":
-                                                throw new IbmIamException("User authentication failed due to a locked(invalid) account.");
-                                            case "cert_login":
-                                                throw new IbmIamException("User must login with a certificate when accept-client-certs=prompt_as_needed.");
-                                            case "cert_stepup_http":
-                                                throw new IbmIamException("User tried to step-up to certificate authentication over HTTP, which is not allowed (HTTPS is required).");
-                                            case "eai_auth_error":
-                                                throw new IbmIamException("External authentication interface information returned to WebSEAL is invalid.");
-                                            case "error":
+                                            case "ACCT_INACTIVATED":
+                                                throw new IbmIamException(Lang.Error_ACCT_INACTIVATED);
+                                            case "ACCT_LOCKED":
+                                                throw new IbmIamException(Lang.Error_ACCT_LOCKED);
+                                            case "CERT_LOGIN":
+                                                throw new IbmIamException(Lang.Error_CERT_LOGIN);
+                                            case "CERT_STEPUP_HTTP":
+                                                throw new IbmIamException(Lang.Error_CERT_STEPUP_HTTP);
+                                            case "EAI_AUTH_ERROR":
+                                                throw new IbmIamException(Lang.Error_EAI_AUTH_ERROR);
+                                            case "ERROR":
                                                 {
                                                     string ERROR_CODE = qry["ERROR_CODE"];
-                                                    switch (ERROR_CODE.ToLower())
+                                                    switch (ERROR_CODE.ToUpperInvariant())
                                                     {
-                                                        case "0xpwdexprd":
+                                                        case "0XPWDEXPRD":
                                                             string url = qry["URL"];
-                                                            throw new IbmIamPasswordExpiredException("You're password has expired.") { HelpLink = url };
+                                                            throw new IbmIamPasswordExpiredException(Lang.Error_0XPWDEXPRD) { HelpLink = url };
                                                         default:
-                                                            throw new IbmIamErrorException($"An unknown error occurred. Code: {ERROR_CODE}", ERROR_CODE);
+                                                            throw new IbmIamErrorException(string.Format(CultureInfo.CurrentCulture, Lang.Error_Unknown_Error_Code, ERROR_CODE), ERROR_CODE);
                                                     }
                                                 }
-                                            case "failed_cert":
-                                                throw new IbmIamException("An attempt to authenticate with a client certificate failed. Client failed to authenticate with a certificate when accept-client-certs=required. A valid client certificate is required to make this connection. User's certificate is invalid.");
-                                            case "help":
-                                                throw new IbmIamException("User performed an action that makes no sense, such as requesting /pkmslogout while logged in using basic authentication.");
-                                            case "login":
-                                                throw new IbmIamException("User needs to authenticate.");
-                                            case "login_success":
-                                                throw new IbmIamException("User successfully authenticated, but there is no last cached URL to redirect to.");
-                                            case "logout":
-                                                throw new IbmIamException("User has logged out.");
-                                            case "passwd":
-                                                throw new IbmIamException("User requests password change.");
-                                            case "passwd_exp":
+                                            case "FAILED_CERT":
+                                                throw new IbmIamException(Lang.Error_FAILED_CERT);
+                                            case "HELP":
+                                                throw new IbmIamException(Lang.Error_HELP);
+                                            case "LOGIN":
+                                                throw new IbmIamException(Lang.Error_LOGIN);
+                                            case "LOGIN_SUCCESS":
+                                                throw new IbmIamException(Lang.Error_LOGIN_SUCCESS);
+                                            case "LOGOUT":
+                                                throw new IbmIamException(Lang.Error_LOGOUT);
+                                            case "PASSWD":
+                                                throw new IbmIamException(Lang.Error_PASSWD);
+                                            case "PASSWD_EXP":
                                                 {
                                                     string url = qry["URL"];
-                                                    throw new IbmIamPasswordExpiredException("User's password has expired.") { HelpLink = url };
+                                                    throw new IbmIamPasswordExpiredException(Lang.Error_PASSWD_EXP) { HelpLink = url };
                                                 }
-                                            case "passwd_rep_failure":
-                                                throw new IbmIamException("Password change request failed.");
-                                            case "passwd_rep_success":
-                                                throw new IbmIamException("Password change request succeeded.");
-                                            case "passwd_warn":
-                                                throw new IbmIamException("Password is soon to expire.");
-                                            case "passwd_warn_failure":
-                                                throw new IbmIamException("Password change not performed after notification that the password is soon to expire.");
-                                            case "stepup":
-                                                throw new IbmIamException("User must step-up to another authentication level.Check the AUTHNLEVEL macro for the required authentication level.");
-                                            case "switch_user":
-                                                throw new IbmIamException("User requested the switch user login page.");
-                                            case "too_many_sessions":
-                                                throw new IbmIamException("User has reached or exceeded the maximum number of allowed sessions.");
+                                            case "PASSWD_REP_FAILURE":
+                                                throw new IbmIamException(Lang.Error_PASSWD_REP_FAILURE);
+                                            case "PASSWD_REP_SUCCESS":
+                                                throw new IbmIamException(Lang.Error_PASSWD_REP_SUCCESS);
+                                            case "PASSWD_WARN":
+                                                throw new IbmIamException(Lang.Error_PASSWD_WARN);
+                                            case "PASSWD_WARN_FAILURE":
+                                                throw new IbmIamException(Lang.Error_PASSWD_WARN_FAILURE);
+                                            case "STEPUP":
+                                                throw new IbmIamException(Lang.Error_STEPUP);
+                                            case "SWITCH_USER":
+                                                throw new IbmIamException(Lang.Error_SWITCH_USER);
+                                            case "TOO_MANY_SESSIONS":
+                                                throw new IbmIamException(Lang.Error_TOO_MANY_SESSIONS);
                                             default:
-                                                throw new IbmIamException($"Unknown operation response {TAM_OP}");
+                                                throw new IbmIamException(string.Format(CultureInfo.CurrentCulture, Lang.Error_Unknown_Operation_Response, TAM_OP));
                                         }
                                     }
                                     else
@@ -198,7 +199,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 //    impersonationState.Dispose();
                 //}
             }
-            throw new Exception("Invalid credentials or an error occurred on server. No SAML response found from server's response.");
+            throw new Exception(Lang.ErrorInvalidCredentials);
         }
       
         private HttpWebResponse QueryProvider(Uri identityProvider, CookieContainer cookies, Uri referer, bool autoRedirect = true)
@@ -214,7 +215,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             httpWebRequest.CookieContainer = cookies;
             if (this.Proxy != null)
             {
-                LoggerInternal($"Proxy settings applied for call.", LogType.Debug);
+                LoggerInternal(Lang.DebugProxyUsed, LogType.Debug);
                 httpWebRequest.Proxy = this.Proxy;
             }
             httpWebRequest.UseDefaultCredentials = true;
@@ -250,7 +251,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             httpWebRequest.ContentLength = byteArray.Length;
             if (this.Proxy != null)
             {
-                LoggerInternal($"Proxy settings applied for call.", LogType.Debug);
+                LoggerInternal(Lang.DebugProxyUsed, LogType.Debug);
                 httpWebRequest.Proxy = this.Proxy;
             }
 
@@ -270,12 +271,12 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             var forms = rgxForm.Matches(htmlResults);
             if (forms.Count == 1)
             {
-                LoggerInternal($"Found one form in response.", LogType.Debug);
+                LoggerInternal(Lang.DebugFoundForm, LogType.Debug);
                 FormResponse formResponse = new FormResponse();
                 string formAttributes = forms[0].Groups["Attr"].Value;
                 string formContent = forms[0].Groups["Content"].Value;
 
-                Match mAtt = null;
+                Match mAtt;
                 if ((mAtt = rgxAtrAction.Match(formAttributes)).Success)
                     formResponse.Action = mAtt.Value;
 
@@ -286,7 +287,6 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 Regex rgxAtrValue = new Regex(@"(?<=\svalue=[""']+)[^""']*|(?<=\svalue=)[\w]+");
                 Regex rgxLabels = new Regex(@"<label\s([^>]*)>([^<]+)</label>");
                 Regex rgxAtrFor = new Regex(@"(?<=\sfor=[""']+)[^""']*|(?<=\sfor=)[\w]+");
-                Hashtable inputs = new Hashtable();
 
                 var fLabels = rgxLabels.Matches(formContent);
                 LoggerInternal($"Found {fLabels.Count} label(s) in form. (Some may be hidden fields.)", LogType.Debug);
@@ -324,24 +324,24 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                             type = mAtt.Value;
                         if ((mAtt = rgxAtrValue.Match(match.Value)).Success)
                             value = WebUtility.HtmlDecode(mAtt.Value);
-                        if (!type.Equals("hidden") && !type.Equals("submit"))
+                        if (!type.Equals("hidden", StringComparison.InvariantCultureIgnoreCase) && !type.Equals("submit", StringComparison.InvariantCultureIgnoreCase))
                         {
                             string displayName = name;
                             if (formResponse.LabelData.ContainsKey(name))
                                 displayName = $"{formResponse.LabelData[name]}".Trim();
-                            if (!displayName.EndsWith(":"))
+                            if (!displayName.EndsWith(":", StringComparison.InvariantCultureIgnoreCase))
                                 displayName += ":";
                             _cmdlet.Host.UI.Write($"{displayName} ");
-                            if (predefinedValues != null && predefinedValues.ContainsKey(name.ToLower()))
+                            if (predefinedValues != null && predefinedValues.ContainsKey(name.ToUpperInvariant()))
                             {
                                 _cmdlet.Host.UI.WriteLine($"(using predefined {name})");
-                                value = predefinedValues[name.ToLower()];
+                                value = predefinedValues[name.ToUpperInvariant()];
                             }
-                            else if (type.Equals("password"))
+                            else if (type.Equals("password", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 using (SecureString secStr = _cmdlet.Host.UI.ReadLineAsSecureString())
                                 {
-                                    value = this.SecureStringToString(secStr);
+                                    value = SecureStringToString(secStr);
                                 }
                             }
                             else
@@ -361,7 +361,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             }
             else
             {
-                throw new NotSupportedException("Found multiple forms in response, this is not currently supported.");
+                throw new NotSupportedException(Lang.ErrorFoundMultiForms);
             }
         }
        
@@ -389,7 +389,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
             return null;
         }
         
-        private string SecureStringToString(SecureString value)
+        private static string SecureStringToString(SecureString value)
         {
             IntPtr valuePtr = IntPtr.Zero;
             try

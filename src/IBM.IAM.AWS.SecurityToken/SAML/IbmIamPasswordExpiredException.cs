@@ -9,6 +9,14 @@
             : base(message)
         {
         }
+
+        internal IbmIamPasswordExpiredException()
+        {
+        }
+
+        internal IbmIamPasswordExpiredException(string message, System.Exception innerException) : base(message, innerException)
+        {
+        }
     }
 
 }

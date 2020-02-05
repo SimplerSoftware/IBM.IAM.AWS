@@ -39,5 +39,17 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         {
             this.ErrorCode = errorCode;
         }
+
+        internal IbmIamErrorException()
+        {
+        }
+
+        internal IbmIamErrorException(string message) : base(message)
+        {
+        }
+
+        internal IbmIamErrorException(string message, System.Exception innerException) : base(message, innerException)
+        {
+        }
     }
 }
