@@ -2,9 +2,12 @@
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
+    /// <summary>
+    /// Generic error from IBM IAM server
+    /// </summary>
     public class IbmIamException : Exception
     {
-        public IbmIamException(string message)
+        internal IbmIamException(string message)
             : base(message)
         {
         }

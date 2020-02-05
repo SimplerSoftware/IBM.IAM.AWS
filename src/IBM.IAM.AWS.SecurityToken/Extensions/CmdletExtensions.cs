@@ -5,9 +5,7 @@ using System.Diagnostics;
 using System.Management.Automation;
 using System.Text;
 
-//namespace BP.AzureAD.SecurityToken.SAML
-//{
-    public static class CmdletExtensions
+    static class CmdletExtensions
     {
         #region ExecuteCmdletInPipeline
         /// <summary>
@@ -121,4 +119,3 @@ using System.Text;
         }
 
     }
-//}

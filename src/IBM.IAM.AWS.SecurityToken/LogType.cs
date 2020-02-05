@@ -1,6 +1,6 @@
 ﻿namespace IBM.IAM.AWS.SecurityToken
 {
-    public enum LogType : byte
+    enum LogType : byte
     {
         Debug = 1,
         Info = 2,

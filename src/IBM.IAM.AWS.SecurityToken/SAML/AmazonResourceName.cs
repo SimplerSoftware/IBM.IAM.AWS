@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
-    public class AmazonResourceName
+    class AmazonResourceName
     {
         public string OriginalString { get; private set; }
         public string Partition { get; private set; }
@@ -48,6 +48,10 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                 return this.OriginalString.Equals((obj as AmazonResourceName).OriginalString, StringComparison.OrdinalIgnoreCase);
 
             return base.Equals(obj);
+        }
+        public override int GetHashCode()
+        {
+            return this.ToString().GetHashCode();
         }
     }
 }

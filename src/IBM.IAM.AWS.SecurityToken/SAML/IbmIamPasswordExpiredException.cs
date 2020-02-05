@@ -1,8 +1,11 @@
 ﻿namespace IBM.IAM.AWS.SecurityToken.SAML
 {
+    /// <summary>
+    /// Password expired error from IBM IAM server
+    /// </summary>
     public class IbmIamPasswordExpiredException : IbmIamException
     {
-        public IbmIamPasswordExpiredException(string message)
+        internal IbmIamPasswordExpiredException(string message)
             : base(message)
         {
         }

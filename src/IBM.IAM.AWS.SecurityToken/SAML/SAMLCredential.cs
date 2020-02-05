@@ -6,7 +6,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
     /// AWS Principal and Role ARNs
     /// <para type="description">AWS Principal and Role ARNs</para>
     /// </summary>
-    public class SAMLCredential
+    class SAMLCredential
     {
         /// <summary>
         /// Default empty Credential
