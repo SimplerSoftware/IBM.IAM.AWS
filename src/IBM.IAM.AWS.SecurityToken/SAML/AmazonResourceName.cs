@@ -3,15 +3,42 @@ using System.Text.RegularExpressions;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
-    class AmazonResourceName
+    /// <summary>
+    /// Amazon Resource Name (ARN)
+    /// </summary>
+    public class AmazonResourceName
     {
+        /// <summary>
+        /// ARN in original format that was parsed.
+        /// </summary>
         public string OriginalString { get; private set; }
+        /// <summary>
+        /// Partition section of ARN
+        /// </summary>
         public string Partition { get; private set; }
+        /// <summary>
+        /// Service section of ARN
+        /// </summary>
         public string Service { get; private set; }
+        /// <summary>
+        /// Region section of ARN
+        /// </summary>
         public string Region { get; private set; }
+        /// <summary>
+        /// Account ID section of ARN
+        /// </summary>
         public string AccountId { get; private set; }
+        /// <summary>
+        /// Resource Type section of ARN
+        /// </summary>
         public string ResourceType { get; private set; }
+        /// <summary>
+        /// Resource Name section of ARN
+        /// </summary>
         public string Resource { get; private set; }
+        /// <summary>
+        /// Resource Divider character used in ARN resource section
+        /// </summary>
         public string ResourceDivider { get; private set; }
 
         public static AmazonResourceName Parse(string arnString)
@@ -31,15 +58,24 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
                     ResourceDivider = mch.Groups["resourcedivider"].Value
                 };
             }
-            throw new FormatException("The passed string value is not in a well formatted ARN format. View the help link for more info. ") {
+            throw new FormatException(Lang.ErrorUnrecognizedArn) {
                 HelpLink = "https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
             };
         }
 
+        /// <summary>
+        /// OriginalString that was parsed
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
-            return $"arn:{Partition}:{Service}:{Region}:{AccountId}:{ResourceType}{ResourceDivider}{Resource}";
+            return this.OriginalString;
         }
+        /// <summary>
+        ///  Determines whether this ARB and a specified ARN have the same value.
+        /// </summary>
+        /// <param name="obj"><see cref="String"/> or <see cref="AmazonResourceName"/></param>
+        /// <returns></returns>
         public override bool Equals(object obj)
         {
             if (obj is string)
@@ -49,6 +85,10 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
 
             return base.Equals(obj);
         }
+        /// <summary>
+        /// Returns the hash code for this ARN.
+        /// </summary>
+        /// <returns></returns>
         public override int GetHashCode()
         {
             return this.ToString().GetHashCode();

@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Host;
@@ -30,7 +31,8 @@ namespace IBM.IAM.AWS.SecurityToken
     ///   </code>
     /// </example>
     /// </summary>
-    [Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = StoreOneRoleParameterSet)]
+    [Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = StoreOneRoleParameterSet),
+        OutputType(typeof(StoredInfo))]
     public class SetAwsIbmSamlCredentials : PSCmdlet
     {
         private const string StoreOneRoleParameterSet = "StoreOneRole";
@@ -77,6 +79,7 @@ namespace IBM.IAM.AWS.SecurityToken
         /// <para type="description">AWS account id to filter out roles only in a specific account.</para>
         /// </summary>
         [Parameter()]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "CmdLet properties do not return values.")]
         public string[] AwsAccountId { get; set; }
 
         /// <summary>
@@ -149,6 +152,7 @@ namespace IBM.IAM.AWS.SecurityToken
         /// <para type="description">A address that does not use the proxy server.</para>
         /// </summary>
         [Parameter()]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "CmdLet properties do not return values.")]
         public string[] ProxyBypassList { get; set; }
 
         /// <summary>
@@ -159,9 +163,11 @@ namespace IBM.IAM.AWS.SecurityToken
         [ValidateRange(15, 720)]
         public int TokenDurationInMinutes { get; set; } = 60;
 
+
         /// <summary>
         /// 
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Exceptions get written to PS error stream.")]
         protected override void ProcessRecord()
         {
             try
@@ -170,38 +176,41 @@ namespace IBM.IAM.AWS.SecurityToken
                 NetworkCredential networkCredential = null;
                 if (this.Credential != null)
                 {
-                    base.WriteVerbose("Network Credentials given, will attempt to use them.");
+                    base.WriteVerbose(Lang.UseGivenNetworkCredentials);
                     networkCredential = this.Credential.GetNetworkCredential();
                 }
-                bool hasPrinARN = this.ParameterWasBound("PrincipalARN") && !string.IsNullOrWhiteSpace(this.PrincipalARN);
-                bool hasRoleARN = this.ParameterWasBound("RoleARN") && !string.IsNullOrWhiteSpace(this.RoleARN);
+                bool hasPrinARN = this.ParameterWasBound(nameof(PrincipalARN)) && !string.IsNullOrWhiteSpace(this.PrincipalARN);
+                bool hasRoleARN = this.ParameterWasBound(nameof(RoleARN)) && !string.IsNullOrWhiteSpace(this.RoleARN);
                 if (hasPrinARN != hasRoleARN)
-                    this.ThrowExecutionError("RoleARN must be specified with PrincipalARN.", this);
+                    this.ThrowExecutionError(Lang.PrincipalRequiredWithRole, this);
                 if (hasPrinARN & hasRoleARN)
                     preselectedPrincipalAndRoleARN = $"{this.RoleARN},{this.PrincipalARN}";
 
                 ServicePointManager.SecurityProtocol = this.SecurityProtocol;
-                IbmIam2AwsSamlScreenScrape ibm2Aws = new IbmIam2AwsSamlScreenScrape(this);
-                ibm2Aws.ErrorClass = this.ErrorClass;
-                ibm2Aws.ErrorElement = this.ErrorElement;
-                ibm2Aws.Proxy = this.GetWebProxy();
-                ibm2Aws.Credentials = networkCredential;
-                ibm2Aws.Logger = (m, t) => {
-                    switch (t)
+                IbmIam2AwsSamlScreenScrape ibm2Aws = new IbmIam2AwsSamlScreenScrape(this)
+                {
+                    ErrorClass = this.ErrorClass,
+                    ErrorElement = this.ErrorElement,
+                    Proxy = this.GetWebProxy(),
+                    Credentials = networkCredential,
+                    Logger = (m, t) =>
                     {
-                        case LogType.Debug:
-                            this.WriteVerbose(m);
-                            break;
-                        case LogType.Info:
-                            this.Host.UI.WriteLine(m);
-                            //_cmdlet.WriteInformation(new InformationRecord(m, ""));
-                            break;
-                        case LogType.Warning:
-                            this.WriteWarning(m);
-                            break;
-                        case LogType.Error:
-                            this.WriteError(new ErrorRecord(new Exception(m), "5000", ErrorCategory.NotSpecified, this));
-                            break;
+                        switch (t)
+                        {
+                            case LogType.Debug:
+                                this.WriteVerbose(m);
+                                break;
+                            case LogType.Info:
+                                this.Host.UI.WriteLine(m);
+                                //_cmdlet.WriteInformation(new InformationRecord(m, ""));
+                                break;
+                            case LogType.Warning:
+                                this.WriteWarning(m);
+                                break;
+                            case LogType.Error:
+                                this.WriteError(new ErrorRecord(new Exception(m), "5000", ErrorCategory.NotSpecified, this));
+                                break;
+                        }
                     }
                 };
 
@@ -226,13 +235,22 @@ namespace IBM.IAM.AWS.SecurityToken
                                 PrincipalArn = role.PrincipalArn.OriginalString,
                                 DurationInSeconds = 60 * this.TokenDurationInMinutes
                             }).FirstOrDefault();
-                            this.WriteObject(aRole);
-                            base.WriteVerbose($"Saving role '{role.Value}' to profile '{role.RoleArn.Resource}'.");
-                            this.ExecuteCmdletInPipeline("Set-AWSCredential", new
+                            this.WriteObject(new StoredInfo
                             {
+                                AssertionDoc = assertion,
+                                Expires = aRole.Credentials.Expiration,
+                                PrincipalArn = role.PrincipalArn,
+                                RoleArn = role.RoleArn,
+                                StoreAs = this.StoreAs ?? role.RoleArn.Resource
+                            });
+                            base.WriteVerbose($"Saving role '{role.Value}' to profile '{role.RoleArn.Resource}'.");
+                            var home = this.GetVariableValue("HOME") as string;
+                            _ = this.ExecuteCmdletInPipeline("Set-AWSCredential", new
+                            {
+                                ProfileLocation = Path.Combine(home, ".aws", "credentials"),
                                 AccessKey = aRole.Credentials.AccessKeyId,
                                 SecretKey = aRole.Credentials.SecretAccessKey,
-                                SessionToken = aRole.Credentials.SessionToken,
+                                aRole.Credentials.SessionToken,
                                 StoreAs = role.RoleArn.Resource
                             });
                         }
@@ -254,7 +272,7 @@ namespace IBM.IAM.AWS.SecurityToken
                 }
                 else
                 {
-                    var sendToPipeline = this.SelectAndStoreProfileForRole(assertion, roles, preselectedPrincipalAndRoleARN);
+                    StoredInfo sendToPipeline = this.SelectAndStoreProfileForRole(assertion, roles, preselectedPrincipalAndRoleARN);
                     base.WriteObject(sendToPipeline);
                 }
             }
@@ -294,7 +312,7 @@ namespace IBM.IAM.AWS.SecurityToken
         }
         internal bool HasWebProxy { get { return this.ProxyAddress != null; } }
 
-        private object SelectAndStoreProfileForRole(string assertion, IList<SAMLCredential> roleSet, string preselectedPrincipalAndRoleARN)
+        private StoredInfo SelectAndStoreProfileForRole(string assertion, IList<SAMLCredential> roleSet, string preselectedPrincipalAndRoleARN)
         {
             string roleArn = preselectedPrincipalAndRoleARN;
             if (!this.TestPreselectedRoleAvailable(preselectedPrincipalAndRoleARN, roleSet.Select(arn => arn.Value).ToList()))
@@ -351,13 +369,13 @@ namespace IBM.IAM.AWS.SecurityToken
                     }
                     if (userChooses)
                     {
-                        int index = base.Host.UI.PromptForChoice("Select Role", "Select the role to be assumed when this profile is active", collection, idxDefault);
+                        int index = base.Host.UI.PromptForChoice(Lang.SelectRoleCaption, Lang.SelectRoleMessage, collection, idxDefault);
                         roleArn = collection[index].HelpMessage;
                     }
                 }
             }
             if (string.IsNullOrEmpty(roleArn))
-                this.ThrowExecutionError("A role is required before the profile can be stored.", this);
+                this.ThrowExecutionError(Lang.ErrorNoRoleSelected, this);
 
             var role = roleSet.FirstOrDefault(r => r.Value.Equals(roleArn, StringComparison.OrdinalIgnoreCase));
             this.WriteVerbose($"Getting [{role.PrincipalArn}] tokens using [{role.RoleArn}]");
@@ -370,17 +388,25 @@ namespace IBM.IAM.AWS.SecurityToken
             }).FirstOrDefault();
             base.WriteVerbose($"Saving to profile '{this.StoreAs ?? role.RoleArn.Resource}'.");
 
-            this.ExecuteCmdletInPipeline("Set-AWSCredential", new
+            var home = this.GetVariableValue("HOME") as string;
+            _ = this.ExecuteCmdletInPipeline("Set-AWSCredential", new
             {
+                ProfileLocation = Path.Combine(home, ".aws", "credentials"),
                 AccessKey = aRole.Credentials.AccessKeyId,
                 SecretKey = aRole.Credentials.SecretAccessKey,
-                SessionToken = aRole.Credentials.SessionToken,
+                aRole.Credentials.SessionToken,
                 StoreAs = this.StoreAs ?? role.RoleArn.Resource
             });
 
             base.WriteVerbose($"Stored AWS Credentials as {this.StoreAs ?? role.RoleArn.Resource}.\r\nUse 'Set-AWSCredentials -ProfileName {this.StoreAs ?? role.RoleArn.Resource}' to load this profile and obtain temporary AWS credentials.");
 
-            return aRole;
+            return new StoredInfo { 
+                AssertionDoc = assertion,
+                Expires = aRole.Credentials.Expiration,
+                PrincipalArn = role.PrincipalArn,
+                RoleArn = role.RoleArn,
+                StoreAs = this.StoreAs ?? role.RoleArn.Resource
+            };
         }
 
         private bool ParameterWasBound(string parameterName)

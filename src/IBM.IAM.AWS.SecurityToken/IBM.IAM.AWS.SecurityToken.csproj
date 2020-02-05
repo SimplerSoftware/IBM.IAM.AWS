@@ -22,6 +22,7 @@
     <RunPostBuildEvent>Always</RunPostBuildEvent>
     <NuspecFile>package.nuspec</NuspecFile>
     <PackageIconUrl />
+    <NeutralLanguage>en-us</NeutralLanguage>
   </PropertyGroup>
   
   <Target Name="SetNuspecProperties" BeforeTargets="GenerateNuspec" Condition="$(NuspecFile) != ''">
@@ -53,6 +54,10 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3">
     </PackageReference>
@@ -93,6 +98,19 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Lang.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Lang.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Lang.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Lang.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
   <Target Name="PublishPack" AfterTargets="Pack">
