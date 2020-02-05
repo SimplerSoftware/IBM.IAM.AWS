@@ -3,7 +3,7 @@ using System.Xml;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
-    public class SAMLSubject
+    class SAMLSubject
     {
 
         public SAMLSubject(XmlElement subject)
@@ -16,7 +16,7 @@ namespace IBM.IAM.AWS.SecurityToken.SAML
         public SAMLSubjectConfirmation SubjectConfirmation { get; private set; }
     }
 
-    public class SAMLSubjectConfirmation
+    class SAMLSubjectConfirmation
     {
         public SAMLSubjectConfirmation(XmlElement subjectConfirmation)
         {

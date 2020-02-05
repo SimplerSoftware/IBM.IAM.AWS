@@ -18,7 +18,7 @@ namespace IBM.IAM.AWS.SecurityToken
     /// <remarks>
     /// Supports multiple values per key
     /// </remarks>
-    public class UrlEncodingParser : NameValueCollection
+    class UrlEncodingParser : NameValueCollection
     {
 
         /// <summary>
@@ -43,6 +43,7 @@ namespace IBM.IAM.AWS.SecurityToken
         /// but saved. Then when you write the original URL is 
         /// re-written with the new query string.
         /// </param>
+        /// <param name="decodeSpacesAsPlusSigns">Convert spaces as + character instead of %20</param>
         public UrlEncodingParser(string queryStringOrUrl = null, bool decodeSpacesAsPlusSigns = false)
         {
             Url = string.Empty;

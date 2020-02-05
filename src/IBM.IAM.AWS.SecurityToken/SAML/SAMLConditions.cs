@@ -3,7 +3,7 @@ using System.Xml;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
-    public class SAMLConditions
+    class SAMLConditions
     {
         public SAMLConditions(XmlElement conditions)
         {

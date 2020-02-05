@@ -1,9 +1,4 @@
-﻿using Amazon;
-using Amazon.Runtime;
-using Amazon.Runtime.CredentialManagement;
-using Amazon.SecurityToken;
-using Amazon.SecurityToken.Model;
-using IBM.IAM.AWS.SecurityToken.SAML;
+﻿using IBM.IAM.AWS.SecurityToken.SAML;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,33 +19,30 @@ namespace IBM.IAM.AWS.SecurityToken
     ///   <title>Default usage.</title>
     ///   <code>
     ///   $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
-    ///   Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
-    ///   Set-AwsIbmSamlCredentials -EndpointName 'IBMEP'
+    ///   Set-AwsIbmSamlCredentials -IbmIamEndpoint $endpoint
     ///   </code>
     /// </example>
     /// <example>
     ///   <title>Specifying a predefined username and password.</title>
     ///   <code>
     ///   $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
-    ///   Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
-    ///   Set-AwsIbmSamlCredentials -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server') -RegionMap @{;"West_EU_"="eu-west-1";"West_"="us-west-1";"East_"="us-east-1"}
+    ///   Set-AwsIbmSamlCredentials -IbmIamEndpoint $endpoint -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server') -RegionMap @{;"West_EU_"="eu-west-1";"West_"="us-west-1";"East_"="us-east-1"}
     ///   </code>
     /// </example>
     /// </summary>
-    [Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = StoreOneRoleParameterSet), 
-        OutputType(typeof(StoredInfo))]
+    [Cmdlet(VerbsCommon.Set, "AwsIbmSamlCredentials", DefaultParameterSetName = StoreOneRoleParameterSet)]
     public class SetAwsIbmSamlCredentials : PSCmdlet
     {
         private const string StoreOneRoleParameterSet = "StoreOneRole";
         private const string StoreAllRolesParameterSet = "StoreAllRoles";
-        private IBMSAMAuthenticationController _controller;
+        const string Ellipsis = "…";
 
         /// <summary>
-        /// The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.
-        /// <para type="description">The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.</para>
+        /// The endpoint URL to the IBM IAM server.
+        /// <para type="description">The endpoint URL to the IBM IAM server.</para>
         /// </summary>
         [Parameter(Mandatory = true, ValueFromPipeline = true)]
-        public string EndpointName { get; set; }
+        public Uri IbmIamEndpoint { get; set; }
 
         /// <summary>
         /// The AWS principal ARN for the role you want to assume.
@@ -132,14 +124,6 @@ namespace IBM.IAM.AWS.SecurityToken
         public SwitchParameter StoreAllRoles { get; set; }
 
         /// <summary>
-        /// Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2
-        /// <para type="description">Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2</para>
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty]
-        public string STSEndpointRegion { get; set; } = RegionEndpoint.USEast2.SystemName;
-
-        /// <summary>
         /// The address of the web proxy in Url form. (https://proxy.example.corp:8080)
         /// <para type="description">The address of the proxy in Url form. (https://proxy.example.corp:8080)</para>
         /// </summary>
@@ -168,26 +152,12 @@ namespace IBM.IAM.AWS.SecurityToken
         public string[] ProxyBypassList { get; set; }
 
         /// <summary>
-        /// Hashtable mapping containing role names to AWS region endpoint system names. Role names can be valid regex strings, first match is returned. Note: If you want an exact match, for the role name be sure to prefix with ^ and suffix with $.
-        /// <para type="description">Hashtable mapping containing role names to AWS region endpoint system names. Role names can be valid regex strings, first match is returned.</para>
-        /// </summary>
-        [Parameter()]
-        public Hashtable RegionMap { get; set; } = null;
-
-        /// <summary>
-        /// Duration in minutes how long the credentials session token will be valid for. <see cref="UseAssertionDocumentDuration"/> has precedence if set.
-        /// <para type="description">Duration in minutes how long the credentials session token will be valid for. <see cref="UseAssertionDocumentDuration"/> has precedence if set.</para>
+        /// Duration in minutes how long the credentials session token will be valid for.
+        /// <para type="description">Duration in minutes how long the credentials session token will be valid for.</para>
         /// </summary>
         [Parameter()]
         [ValidateRange(15, 720)]
         public int TokenDurationInMinutes { get; set; } = 60;
-
-        /// <summary>
-        /// Use the duration time that was applied for the SAML assertion document for the token duration.
-        /// <para type="description">Use the duration time that was applied for the SAML assertion document for the token duration.</para>
-        /// </summary>
-        [Parameter()]
-        public SwitchParameter UseAssertionDocumentDuration { get; set; }
 
         /// <summary>
         /// 
@@ -210,27 +180,21 @@ namespace IBM.IAM.AWS.SecurityToken
                 if (hasPrinARN & hasRoleARN)
                     preselectedPrincipalAndRoleARN = $"{this.RoleARN},{this.PrincipalARN}";
 
-                base.WriteVerbose($"Retrieving stored endpoint '{this.EndpointName}'.");
-                SAMLEndpoint endpoint = new SAMLEndpointManager().GetEndpoint(this.EndpointName);
-                if (endpoint == null)
-                {
-                    this.ThrowExecutionError("Endpoint not found. You must first call Set-AWSSamlEndpoint to store the endpoint URL to the IBM IDS site.", this);
-                }
-                RegionEndpoint regionEndpoint = RegionEndpoint.GetBySystemName(this.STSEndpointRegion);
-                base.WriteVerbose($"Endpoint region set to {regionEndpoint.SystemName}.");
-                // We can't use the nice controller they built, as it uses there own assertion class that has issues because of dictionary use. (Old Note, it is fixed now apparently.)
-                _controller = new IBMSAMAuthenticationController(this, regionEndpoint.SystemName);
-                _controller.ErrorElement = this.ErrorElement;
-                _controller.ErrorClass = this.ErrorClass;
-                _controller.SecurityProtocol = this.SecurityProtocol;
-                _controller.Logger = (m, t) => {
+                ServicePointManager.SecurityProtocol = this.SecurityProtocol;
+                IbmIam2AwsSamlScreenScrape ibm2Aws = new IbmIam2AwsSamlScreenScrape(this);
+                ibm2Aws.ErrorClass = this.ErrorClass;
+                ibm2Aws.ErrorElement = this.ErrorElement;
+                ibm2Aws.Proxy = this.GetWebProxy();
+                ibm2Aws.Credentials = networkCredential;
+                ibm2Aws.Logger = (m, t) => {
                     switch (t)
                     {
                         case LogType.Debug:
-                            this.WriteDebug(m);
+                            this.WriteVerbose(m);
                             break;
                         case LogType.Info:
-                            this.WriteInformation(new InformationRecord(m, ""));
+                            this.Host.UI.WriteLine(m);
+                            //_cmdlet.WriteInformation(new InformationRecord(m, ""));
                             break;
                         case LogType.Warning:
                             this.WriteWarning(m);
@@ -241,73 +205,56 @@ namespace IBM.IAM.AWS.SecurityToken
                     }
                 };
 
-                base.WriteVerbose("Authenticating with endpoint to verify role data...");
-                var _awsAuthController = new Amazon.SecurityToken.SAML.SAMLAuthenticationController(
-                    _controller,
-                    new IBMSAMLAuthenticationResponseParser(),
-                    this.GetWebProxy()
-                    );
-                var sAMLAssertion = _awsAuthController.GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
-
-                AnonymousAWSCredentials anonCred = new AnonymousAWSCredentials();
-                AmazonSecurityTokenServiceConfig cfg = new AmazonSecurityTokenServiceConfig();
-                cfg.RegionEndpoint = RegionEndpoint.GetBySystemName(this.STSEndpointRegion ?? cfg.RegionEndpoint.SystemName);
-                if (this.HasWebProxy)
-                    cfg.SetWebProxy(this.GetWebProxy());
-                AmazonSecurityTokenServiceClient sts = new AmazonSecurityTokenServiceClient(anonCred, cfg);
+                var assertion = ibm2Aws.RetrieveSAMLAssertion(IbmIamEndpoint);
+                var roles = ibm2Aws.GetRolesFromAssertion();
 
                 if (this.StoreAllRoles)
                 {
-                    var AuthnStatement = GetSAMLAuthnStatement(sAMLAssertion.AssertionDocument);
-                    var AttributeStatement = GetSAMLAttributeStatement(sAMLAssertion.AssertionDocument);
-                    var config = new SharedCredentialsFile();
-                    SAMLImmutableCredentials creds = null;
-                    SAMLCredential[] roles = null;
                     if (AwsAccountId != null && AwsAccountId.Length > 0)
-                        roles = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).Where(r => AwsAccountId.Contains(r.PrincipalArn.AccountId, StringComparer.OrdinalIgnoreCase)).ToArray();
-                    else
-                        roles = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).ToArray();
+                        roles = roles.Where(r => AwsAccountId.Contains(r.PrincipalArn.AccountId, StringComparer.OrdinalIgnoreCase)).ToArray();
 
                     foreach (var role in roles)
                     {
-                        creds = null;
+
                         this.WriteVerbose($"Getting [{role.PrincipalArn}] tokens using [{role.RoleArn}]");
                         try
                         {
+                            var aRole = this.ExecuteCmdletInPipeline<dynamic>("Use-STSRoleWithSAML", new
+                            {
+                                SAMLAssertion = ibm2Aws.Assertion,
+                                RoleArn = role.RoleArn.OriginalString,
+                                PrincipalArn = role.PrincipalArn.OriginalString,
+                                DurationInSeconds = 60 * this.TokenDurationInMinutes
+                            }).FirstOrDefault();
+                            this.WriteObject(aRole);
                             base.WriteVerbose($"Saving role '{role.Value}' to profile '{role.RoleArn.Resource}'.");
-                            creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
+                            this.ExecuteCmdletInPipeline("Set-AWSCredential", new
+                            {
+                                AccessKey = aRole.Credentials.AccessKeyId,
+                                SecretKey = aRole.Credentials.SecretAccessKey,
+                                SessionToken = aRole.Credentials.SessionToken,
+                                StoreAs = role.RoleArn.Resource
+                            });
                         }
-                        catch (ExpiredTokenException ex)
-                        {
-                            this.WriteVerbose($"Could not Assume Role: {role.RoleArn.Resource}");
-                            this.WriteVerbose("Attempting to Refresh Token");
-                            // Updating Assertion Document
-                            sAMLAssertion = _awsAuthController.GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
-                            this.WriteVerbose("Retrying this operation");
-                            creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
-                            this.WriteVerbose($"RetryResult: {creds}");
-                        }
-                        catch (AmazonSecurityTokenServiceException ex)
+                        //catch (ExpiredTokenException ex)
+                        //{
+                        //    this.WriteVerbose($"Could not Assume Role: {role.RoleArn.Resource}");
+                        //    this.WriteVerbose("Attempting to Refresh Token");
+                        //    // Updating Assertion Document
+                        //    sAMLAssertion = _awsAuthController.GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
+                        //    this.WriteVerbose("Retrying this operation");
+                        //    creds = AssumeRole(sts, config, role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
+                        //    this.WriteVerbose($"RetryResult: {creds}");
+                        //}
+                        catch (Exception ex)
                         {
                             this.WriteError(new ErrorRecord(ex, "5000", ErrorCategory.NotSpecified, this));
-                        }
-                        if (creds != null)
-                        {
-                            this.WriteObject(new StoredInfo
-                            {
-                                StoreAs = role.RoleArn.Resource,
-                                AssertionDoc = sAMLAssertion.AssertionDocument,
-                                AssertionExpires = AuthnStatement.SessionNotOnOrAfter > AttributeStatement.SessionNotOnOrAfter ? AuthnStatement.SessionNotOnOrAfter : AttributeStatement.SessionNotOnOrAfter,
-                                Expires = creds.Expires.ToLocalTime(),
-                                PrincipalArn = role.PrincipalArn,
-                                RoleArn = role.RoleArn
-                            });
                         }
                     }
                 }
                 else
                 {
-                    StoredInfo sendToPipeline = this.SelectAndStoreProfileForRole(sts, sAMLAssertion, preselectedPrincipalAndRoleARN, networkCredential, regionEndpoint);
+                    var sendToPipeline = this.SelectAndStoreProfileForRole(assertion, roles, preselectedPrincipalAndRoleARN);
                     base.WriteObject(sendToPipeline);
                 }
             }
@@ -347,44 +294,45 @@ namespace IBM.IAM.AWS.SecurityToken
         }
         internal bool HasWebProxy { get { return this.ProxyAddress != null; } }
 
-        private StoredInfo SelectAndStoreProfileForRole(IAmazonSecurityTokenService sts, Amazon.SecurityToken.SAML.SAMLAssertion sAMLAssertion, string preselectedPrincipalAndRoleARN, NetworkCredential networkCredential, RegionEndpoint stsEndpointRegion)
+        private object SelectAndStoreProfileForRole(string assertion, IList<SAMLCredential> roleSet, string preselectedPrincipalAndRoleARN)
         {
             string roleArn = preselectedPrincipalAndRoleARN;
-            if (!this.TestPreselectedRoleAvailable(preselectedPrincipalAndRoleARN, sAMLAssertion.RoleSet.Select(arn => arn.Value).ToList()))
+            if (!this.TestPreselectedRoleAvailable(preselectedPrincipalAndRoleARN, roleSet.Select(arn => arn.Value).ToList()))
             {
-                if (sAMLAssertion.RoleSet.Count == 1)
+                if (roleSet.Count == 1)
                 {
-                    roleArn = sAMLAssertion.RoleSet.First().Value;
-                    base.WriteVerbose(string.Format("Only one role available, pre-selecting role ARN {0}", preselectedPrincipalAndRoleARN));
+                    roleArn = roleSet.First().Value;
+                    base.WriteVerbose($"Only one role available, pre-selecting role ARN {preselectedPrincipalAndRoleARN}");
                 }
                 else
                 {
-                    IList<SAMLCredential> roleSet = null;
                     if (AwsAccountId != null && AwsAccountId.Length > 0)
-                        roleSet = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).Where(r => AwsAccountId.Contains(r.PrincipalArn.AccountId, StringComparer.OrdinalIgnoreCase)).ToList();
-                    else
-                        roleSet = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).ToList();
+                        roleSet = roleSet.Where(r => AwsAccountId.Contains(r.PrincipalArn.AccountId, StringComparer.OrdinalIgnoreCase)).ToList();
+
+                    var width = this.Host.UI.RawUI.WindowSize.Width - 4; // $MenuOptions.MaxWidth - 4
+                    List<char> okchars = new List<char>();
+                    for (char c = 'A'; c <= 'Z'; c++) okchars.Add(c); // A - Z
+                    for (char c = '0'; c <= '9'; c++) okchars.Add(c); // 0 - 9
+                    for (char c = '!'; c <= '/'; c++) okchars.Add(c); // ! - /
+                    for (char c = ':'; c <= '>'; c++) okchars.Add(c); // : - >
+                    for (char c = '['; c <= '_'; c++) okchars.Add(c); // [ - _
+                    for (char c = '{'; c <= '~'; c++) okchars.Add(c); // { - ~
 
                     Collection<ChoiceDescription> collection = new Collection<ChoiceDescription>();
-                    char c = '!';
+                    int idx = 0;
                     foreach (var cred in roleSet.OrderBy(r => r.RoleArn.AccountId).ThenBy(r => r.RoleArn.Resource))
                     {
                         string label;
-                        if (roleSet.Count <= 61 && c <= '_')
+                        if (roleSet.Count <= okchars.Count)
                         {
-                            if (c == '?')
-                                c++;
-                            label = $"&{c} - {cred.RoleArn.Resource}";
-                            c++;
+                            label = $"&{okchars[idx]} - {cred.RoleArn.Resource}";
+                            label = NewSpaceDelimitedText(label, width) + ".";
                         }
                         else
                             label = cred.RoleArn.Resource;
-                        if (label.Length < (this.Host.UI.RawUI.WindowSize.Width - 4) &&
-                            roleSet.Count <= 61)
-                        {
-                            label += $"{new string(' ', this.Host.UI.RawUI.WindowSize.Width - label.Length - 4)}.";
-                        }
+
                         collection.Add(new ChoiceDescription(label, cred.Value));
+                        idx++;
                     }
 
                     bool userChooses = true;
@@ -401,7 +349,6 @@ namespace IBM.IAM.AWS.SecurityToken
                         else if (fnd.Length >= 1)
                             idxDefault = collection.IndexOf(fnd[0]); // Pre-select the first role found with the HelpFindResource's value
                     }
-
                     if (userChooses)
                     {
                         int index = base.Host.UI.PromptForChoice("Select Role", "Select the role to be assumed when this profile is active", collection, idxDefault);
@@ -412,26 +359,28 @@ namespace IBM.IAM.AWS.SecurityToken
             if (string.IsNullOrEmpty(roleArn))
                 this.ThrowExecutionError("A role is required before the profile can be stored.", this);
 
-            var role = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).FirstOrDefault(r => r.Value.Equals(roleArn, StringComparison.OrdinalIgnoreCase));
+            var role = roleSet.FirstOrDefault(r => r.Value.Equals(roleArn, StringComparison.OrdinalIgnoreCase));
+            this.WriteVerbose($"Getting [{role.PrincipalArn}] tokens using [{role.RoleArn}]");
+            var aRole = this.ExecuteCmdletInPipeline<dynamic>("Use-STSRoleWithSAML", new
+            {
+                SAMLAssertion = assertion,
+                RoleArn = role.RoleArn.OriginalString,
+                PrincipalArn = role.PrincipalArn.OriginalString,
+                DurationInSeconds = 60 * TokenDurationInMinutes
+            }).FirstOrDefault();
             base.WriteVerbose($"Saving to profile '{this.StoreAs ?? role.RoleArn.Resource}'.");
 
-            var config = new SharedCredentialsFile();
-            var creds = AssumeRole(sts, config, this.StoreAs ?? role.RoleArn.Resource, sAMLAssertion, role, this.TokenDurationInMinutes);
+            this.ExecuteCmdletInPipeline("Set-AWSCredential", new
+            {
+                AccessKey = aRole.Credentials.AccessKeyId,
+                SecretKey = aRole.Credentials.SecretAccessKey,
+                SessionToken = aRole.Credentials.SessionToken,
+                StoreAs = this.StoreAs ?? role.RoleArn.Resource
+            });
 
             base.WriteVerbose($"Stored AWS Credentials as {this.StoreAs ?? role.RoleArn.Resource}.\r\nUse 'Set-AWSCredentials -ProfileName {this.StoreAs ?? role.RoleArn.Resource}' to load this profile and obtain temporary AWS credentials.");
 
-            var AuthnStatement = GetSAMLAuthnStatement(sAMLAssertion.AssertionDocument);
-            var AttributeStatement = GetSAMLAttributeStatement(sAMLAssertion.AssertionDocument);
-
-            return new StoredInfo
-            {
-                StoreAs = this.StoreAs ?? role.RoleArn.Resource,
-                AssertionDoc = _controller._lastAssertion,
-                AssertionExpires = AuthnStatement.SessionNotOnOrAfter > AttributeStatement.SessionNotOnOrAfter ? AuthnStatement.SessionNotOnOrAfter : AttributeStatement.SessionNotOnOrAfter,
-                Expires = creds.Expires.ToLocalTime(),
-                PrincipalArn = role.PrincipalArn,
-                RoleArn = role.RoleArn
-            };
+            return aRole;
         }
 
         private bool ParameterWasBound(string parameterName)
@@ -453,103 +402,54 @@ namespace IBM.IAM.AWS.SecurityToken
                     )
                 );
         }
-
-        private SAMLAuthnStatement GetSAMLAuthnStatement(string assertionDocument)
+        internal string NewSpaceDelimitedText(string Text, int? MaxWidth = null, Alignment Justified = Alignment.Undefined)
         {
-            System.Xml.XmlDocument xDoc = new System.Xml.XmlDocument();
-            byte[] bytes = Convert.FromBase64String(assertionDocument);
-            xDoc.LoadXml(System.Text.Encoding.UTF8.GetString(bytes));
-            System.Xml.XmlNamespaceManager xmlNamespaceManager = new System.Xml.XmlNamespaceManager(xDoc.NameTable);
-            xmlNamespaceManager.AddNamespace("saml", SAMLAssertion.AssertionNamespace);
 
-            var assertion = xDoc.DocumentElement["Assertion", SAMLAssertion.AssertionNamespace];
-            return new SAMLAuthnStatement(assertion["AuthnStatement", SAMLAssertion.AssertionNamespace]);
-        }
-        private SAMLAttributeStatement GetSAMLAttributeStatement(string assertionDocument)
-        {
-            System.Xml.XmlDocument xDoc = new System.Xml.XmlDocument();
-            byte[] bytes = Convert.FromBase64String(assertionDocument);
-            xDoc.LoadXml(System.Text.Encoding.UTF8.GetString(bytes));
-            System.Xml.XmlNamespaceManager xmlNamespaceManager = new System.Xml.XmlNamespaceManager(xDoc.NameTable);
-            xmlNamespaceManager.AddNamespace("saml", SAMLAssertion.AssertionNamespace);
-
-            var assertion = xDoc.DocumentElement["Assertion", SAMLAssertion.AssertionNamespace];
-            var issueInstant = DateTime.Parse(assertion?.Attributes["IssueInstant"]?.Value ?? "1/1/1900");
-            return new SAMLAttributeStatement(assertion["AttributeStatement", SAMLAssertion.AssertionNamespace], issueInstant, xmlNamespaceManager);
-        }
-
-        SAMLImmutableCredentials AssumeRole(IAmazonSecurityTokenService sts, ICredentialProfileStore config, string profileName, Amazon.SecurityToken.SAML.SAMLAssertion assertion, SAMLCredential role, int? durationinMinutes = null)
-        {
-            var credential = AssumeRole(sts, assertion, role, durationinMinutes);
-            AddRoleToConfig(config ?? throw new ArgumentNullException(nameof(config)),
-                profileName,
-                role ?? throw new ArgumentNullException(nameof(role)),
-                credential);
-            return credential;
-        }
-        SAMLImmutableCredentials AssumeRole(IAmazonSecurityTokenService sts, Amazon.SecurityToken.SAML.SAMLAssertion assertion, SAMLCredential role, int? durationinMinutes = null)
-        {
-            if (this.UseAssertionDocumentDuration)
+            if (!MaxWidth.HasValue)
+                MaxWidth = Host.UI.RawUI.WindowSize.Width;
+            string textLine = string.Empty;
+            var textLength = $"{Text}".Length;
+            if (Justified == Alignment.Center)
             {
-                WriteVerbose($"Using assertion document duration");
-                var authnStatement = GetSAMLAuthnStatement(assertion.AssertionDocument);
-                var attributeStatement = GetSAMLAttributeStatement(assertion.AssertionDocument);
-                var assertionExpires = authnStatement.SessionNotOnOrAfter > attributeStatement.SessionNotOnOrAfter ? authnStatement.SessionNotOnOrAfter : attributeStatement.SessionNotOnOrAfter;
-                WriteVerbose($"Assertion Expires: {assertionExpires}");
-                durationinMinutes = (int)(assertionExpires - DateTime.Now).TotalMinutes - 1; // Shave off a minute just so there is no race condition.
-            }
-            WriteVerbose($"Duration Minutes: {(durationinMinutes ?? 60)}");
-            WriteVerbose($"Duration Hours: {(durationinMinutes ?? 60) / 60}");
-            return assertion.GetRoleCredentials(sts, role.Value, TimeSpan.FromMinutes(durationinMinutes ?? 60));
-        }
-        private void AddRoleToConfig(ICredentialProfileStore config, string profileName, SAMLCredential role, SAMLImmutableCredentials t)
-        {
-            if (!config.TryGetProfile(profileName ?? role.RoleArn.Resource, out CredentialProfile profile))
-            {
-                var options = new CredentialProfileOptions();
-                profile = new CredentialProfile(profileName ?? role.RoleArn.Resource, options);
-            }
-            profile.Options.AccessKey = t.AccessKey;
-            profile.Options.SecretKey = t.SecretKey;
-            profile.Options.Token = t.Token;
-
-            if (profile.Region == null)
-            {
-                var role_region = GetRoleRegion(role);
-                if (role_region != null)
+                var textBlanks = ((MaxWidth.Value - 2) - textLength) / 2;
+                if (textBlanks <= 0)
                 {
-                    WriteDebug($"Adding auto-magic region option to {profile.Name}");
-                    profile.Region = role_region;
+                    textLine = $"{Text}";
                 }
-                else if (!string.IsNullOrWhiteSpace(this.STSEndpointRegion))
+                else
                 {
-                    WriteDebug($"Adding STS region option to {profile.Name}");
-                    profile.Region = RegionEndpoint.GetBySystemName(this.STSEndpointRegion);
+                    textLine = new string(' ', textBlanks) + $"{Text}";
                 }
+                textLine += new string(' ', MaxWidth.Value - textLine.Length);
+            }
+            else if (Justified == Alignment.Right)
+            {
+                if (textLength > MaxWidth)
+                {
+                    Text = $"{Text}".Substring(0, MaxWidth.Value - Ellipsis.Length);
+                    Text += Ellipsis;
+                }
+                else if ($"{Text}".Length < MaxWidth)
+                {
+                    textLine += new string(' ', MaxWidth.Value - $"{Text}".Length);
+                }
+                textLine += $"{Text}";
             }
             else
-                WriteVerbose("Region already set for profile, skipping region lookup.");
-
-            config.RegisterProfile(profile);
-        }
-
-        RegionEndpoint GetRoleRegion(SAMLCredential role)
-        {
-            if (RegionMap == null)
-                return null;
-
-            foreach (string roleName in RegionMap.Keys)
             {
-                this.WriteVerbose($"Testing '{role.RoleArn.Resource}' to see if it matches '{roleName}'");
-                if (Regex.IsMatch(role.RoleArn.Resource, roleName))
+                if (textLength > MaxWidth)
                 {
-                    this.WriteVerbose($"Role name/pattern matched! Returning endpoint '{RegionMap[roleName]}'");
-                    return RegionEndpoint.GetBySystemName((string)RegionMap[roleName]);
+                    Text = $"{Text}".Substring(0, MaxWidth.Value - Ellipsis.Length);
+                    Text += Ellipsis;
+                }
+
+                textLine = $"{Text}";
+                if (textLine.Length < MaxWidth)
+                {
+                    textLine += new string(' ', MaxWidth.Value - textLine.Length);
                 }
             }
-            this.WriteVerbose("No Region Pattern Recognized");
-            return null;
+            return textLine;
         }
-
     }
 }

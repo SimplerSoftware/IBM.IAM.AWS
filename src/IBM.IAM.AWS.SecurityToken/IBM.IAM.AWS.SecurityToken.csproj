@@ -4,7 +4,7 @@
     <AssemblyName>IBM.IAM.AWS.SecurityToken</AssemblyName>
     <Description>AWS SAML integration with IBM's Identity and Access Management</Description>
     <Product>IBM - Identity and Access Management SAML</Product>
-    <Version>1.0.1906.66</Version>
+    <Version>1.0.2002</Version>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>John W Carew</Authors>
     <Company>Simpler Software</Company>
@@ -13,21 +13,22 @@
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Simpler-Software/IBM.IAM.AWS</PackageProjectUrl>
     <PackageIconUrl>https://sdk-for-net.amazonwebservices.com/images/AWSLogo128x128.png</PackageIconUrl>
-    <AssemblyVersion>1.0.1906.66</AssemblyVersion>
-    <FileVersion>1.0.1906.66</FileVersion>
-    <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
+    <AssemblyVersion>1.0.2002.66</AssemblyVersion>
+    <FileVersion>1.0.2002.66</FileVersion>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <XmlDoc2CmdletDocStrict>true</XmlDoc2CmdletDocStrict>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DocumentationFile>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
+    <DocumentationFile></DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>C:\Users\carejw\source\repos\Simpler-Software\IBM.IAM.AWS\IBM.IAM.AWS.SecurityToken\IBM.IAM.AWS.SecurityToken.xml</DocumentationFile>
+    <DocumentationFile></DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.SecurityToken" Version="3.3.103.15">
-    </PackageReference>
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3">
     </PackageReference>
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0">
@@ -54,6 +55,6 @@
     </None>
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="REM IF DEFINED CI exit&#xD;&#xA;&#xD;&#xA;set &quot;Personal=&quot;&#xD;&#xA;REM for /f &quot;tokens=1,3&quot; %25%25A in ('reg query &quot;HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders&quot; /V Personal') do if /i &quot;%25%25~A&quot; == &quot;Personal&quot; set &quot;Personal=%25%25~B&quot;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -Command &quot;[Environment]::GetFolderPath('MyDocuments') | Out-String&quot;') do set &quot;Personal=%25%25~A&quot;&#xD;&#xA;if not defined Personal exit /b 1&#xD;&#xA;echo Coping to %25Personal%25&#xD;&#xA;&#xD;&#xA;del /Q &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\*.*&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)IBM.IAM.AWS.SecurityToken.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)System.Net.Http.Formatting.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)AWSSDK.Core.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)AWSSDK.SecurityToken.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)Newtonsoft.Json.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.psd1&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.ps1xml&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.txt&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*Help.xml&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\IBM.IAM.AWS.SecurityToken\&quot;" />
+    <Exec Command="REM IF DEFINED CI exit&#xD;&#xA;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -NoProfile -Command &quot;$v = ..\..\build\Get-ModuleManifestVersion.ps1 -ManifestPath .\$(TargetName).psd1;$env:Version&quot;') do set &quot;PSModuleVersion=%25%25~A&quot;&#xD;&#xA;set module=&quot;$(TargetName)&quot;&#xD;&#xA;if defined PSModuleVersion set module=%25module%25\%25PSModuleVersion%25&#xD;&#xA;&#xD;&#xA;set &quot;Personal=&quot;&#xD;&#xA;for /f &quot;delims=&quot; %25%25A in ('powershell -NoProfile -Command &quot;[Environment]::GetFolderPath('MyDocuments') | Out-String&quot;') do set &quot;Personal=%25%25~A&quot;&#xD;&#xA;if not defined Personal exit /b 1&#xD;&#xA;echo Coping to %25Personal%25\WindowsPowerShell\Modules\%25module%25\&#xD;&#xA;&#xD;&#xA;del /Q &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\*.*&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.dll&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.psd1&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.ps1xml&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*.txt&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;&#xD;&#xA;xcopy  /Y &quot;$(TargetDir)*Help.xml&quot; &quot;%25Personal%25\WindowsPowerShell\Modules\%25module%25\&quot;" />
   </Target>
 </Project>

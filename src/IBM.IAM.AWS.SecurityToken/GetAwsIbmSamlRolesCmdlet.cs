@@ -1,9 +1,4 @@
-﻿using Amazon;
-using Amazon.Runtime;
-using Amazon.Runtime.CredentialManagement;
-using Amazon.SecurityToken;
-using Amazon.SecurityToken.Model;
-using IBM.IAM.AWS.SecurityToken.SAML;
+﻿using IBM.IAM.AWS.SecurityToken.SAML;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,16 +19,14 @@ namespace IBM.IAM.AWS.SecurityToken
     ///   <title>Default usage.</title>
     ///   <code>
     ///   $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
-    ///   Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
-    ///   Get-AwsIbmSamlRoles -EndpointName 'IBMEP'
+    ///   Get-AwsIbmSamlRoles -IbmIamEndpoint $endpoint
     ///   </code>
     /// </example>
     /// <example>
     ///   <title>Specifying a predefined username and password.</title>
     ///   <code>
     ///   $endpoint = 'https://sso.mycompany.com/saml20/logininitial'
-    ///   Set-AWSSamlEndpoint -Endpoint $endpoint -StoreAs 'IBMEP'
-    ///   Get-AwsIbmSamlRoles -EndpointName 'IBMEP' -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server')
+    ///   Get-AwsIbmSamlRoles -IbmIamEndpoint $endpoint -Credential (Get-Credential -UserName 'MyUsername' -Message 'IBM IAM SAML Server')
     ///   </code>
     /// </example>
     /// </summary>
@@ -41,14 +34,12 @@ namespace IBM.IAM.AWS.SecurityToken
         OutputType(typeof(SAMLCredential))]
     public class GetAwsIbmSamlRolesCmdlet : PSCmdlet
     {
-        private IBMSAMAuthenticationController _controller;
-
         /// <summary>
-        /// The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.
-        /// <para type="description">The name of the endpoint you gave when calling Set-AWSSamlEndpoint with your URL to the IBM IAM server.</para>
+        /// The endpoint URL to the IBM IAM server.
+        /// <para type="description">The endpoint URL to the IBM IAM server.</para>
         /// </summary>
         [Parameter(Mandatory = true, ValueFromPipeline = true)]
-        public string EndpointName { get; set; }
+        public Uri IbmIamEndpoint { get; set; }
 
         /// <summary>
         /// The credentials you want to use to auto-login to the IBM IAM server.
@@ -88,14 +79,6 @@ namespace IBM.IAM.AWS.SecurityToken
         public string ErrorClass { get; set; } = "error";
 
         /// <summary>
-        /// Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2
-        /// <para type="description">Region to use when calling SecurityTokenService's AssumeRoleWithSAML. Default: us-east-2</para>
-        /// </summary>
-        [Parameter]
-        [ValidateNotNullOrEmpty]
-        public string STSEndpointRegion { get; set; } = RegionEndpoint.USEast2.SystemName;
-
-        /// <summary>
         /// The address of the web proxy in Url form. (https://proxy.example.corp:8080)
         /// <para type="description">The address of the proxy in Url form. (https://proxy.example.corp:8080)</para>
         /// </summary>
@@ -123,6 +106,9 @@ namespace IBM.IAM.AWS.SecurityToken
         [Parameter()]
         public string[] ProxyBypassList { get; set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected override void ProcessRecord()
         {
             try
@@ -134,28 +120,21 @@ namespace IBM.IAM.AWS.SecurityToken
                     networkCredential = this.Credential.GetNetworkCredential();
                 }
 
-                base.WriteVerbose($"Retrieving stored endpoint '{this.EndpointName}'.");
-                SAMLEndpoint endpoint = new SAMLEndpointManager().GetEndpoint(this.EndpointName);
-                if (endpoint == null)
-                {
-                    this.ThrowExecutionError("Endpoint not found. You must first call Set-AWSSamlEndpoint to store the endpoint URL to the IBM IDS site.", this);
-                }
-                RegionEndpoint regionEndpoint = RegionEndpoint.GetBySystemName(this.STSEndpointRegion);
-                base.WriteVerbose($"Endpoint region set to {regionEndpoint.SystemName}.");
-                // We can't use the nice controller they built, as it uses there own assertion class that has issues because of dictionary use. (Old Note, it is fixed now apparently.)
-                _controller = new IBMSAMAuthenticationController(this, regionEndpoint.SystemName);
-                _controller.ErrorElement = this.ErrorElement;
-                _controller.ErrorClass = this.ErrorClass;
-                _controller.SecurityProtocol = this.SecurityProtocol;
-                _controller.Logger = (m, t) =>
-                {
+                ServicePointManager.SecurityProtocol = this.SecurityProtocol;
+                IbmIam2AwsSamlScreenScrape aad2Aws = new IbmIam2AwsSamlScreenScrape(this);
+                aad2Aws.ErrorClass = this.ErrorClass;
+                aad2Aws.ErrorElement = this.ErrorElement;
+                aad2Aws.Proxy = this.GetWebProxy();
+                aad2Aws.Credentials = networkCredential;
+                aad2Aws.Logger = (m, t) => {
                     switch (t)
                     {
                         case LogType.Debug:
-                            this.WriteDebug(m);
+                            this.WriteVerbose(m);
                             break;
                         case LogType.Info:
-                            this.WriteInformation(new InformationRecord(m, ""));
+                            this.Host.UI.WriteLine(m);
+                            //_cmdlet.WriteInformation(new InformationRecord(m, ""));
                             break;
                         case LogType.Warning:
                             this.WriteWarning(m);
@@ -166,18 +145,11 @@ namespace IBM.IAM.AWS.SecurityToken
                     }
                 };
 
-                base.WriteVerbose("Authenticating with endpoint to verify role data...");
-                var _awsAuthController = new Amazon.SecurityToken.SAML.SAMLAuthenticationController(
-                    _controller,
-                    new IBMSAMLAuthenticationResponseParser(),
-                    this.GetWebProxy()
-                    );
-                var sAMLAssertion = _awsAuthController.GetSAMLAssertion(endpoint.EndpointUri.ToString(), networkCredential, endpoint.AuthenticationType.ToString());
-                SAMLCredential[] roles = null;
+                var assertion = aad2Aws.RetrieveSAMLAssertion(IbmIamEndpoint);
+                var roles = aad2Aws.GetRolesFromAssertion();
+
                 if (AwsAccountId != null && AwsAccountId.Length > 0)
-                    roles = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).Where(r => AwsAccountId.Contains(r.PrincipalArn.AccountId, StringComparer.OrdinalIgnoreCase)).ToArray();
-                else
-                    roles = sAMLAssertion.RoleSet.Select(r => new SAMLCredential(r)).ToArray();
+                    roles = roles.Where(r => AwsAccountId.Contains(r.PrincipalArn.AccountId, StringComparer.OrdinalIgnoreCase)).ToArray();
 
 
                 foreach (var role in roles)

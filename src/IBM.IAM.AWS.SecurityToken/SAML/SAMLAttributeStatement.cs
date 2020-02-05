@@ -4,7 +4,7 @@ using System.Xml;
 
 namespace IBM.IAM.AWS.SecurityToken.SAML
 {
-    public class SAMLAttributeStatement
+    class SAMLAttributeStatement
     {
         private DateTime issueInstant;
 
