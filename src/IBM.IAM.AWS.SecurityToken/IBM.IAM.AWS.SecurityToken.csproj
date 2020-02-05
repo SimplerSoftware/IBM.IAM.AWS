@@ -42,12 +42,12 @@
     </PropertyGroup>
   </Target>
   
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Any CPU'">
     <DocumentationFile></DocumentationFile>
     <NoWarn>1701;1702;NU5100</NoWarn>
   </PropertyGroup>
   
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Any CPU'">
     <DocumentationFile></DocumentationFile>
     <NoWarn>1701;1702;NU5100</NoWarn>
   </PropertyGroup>
