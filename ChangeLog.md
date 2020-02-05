@@ -19,6 +19,10 @@
 -->
 ## Upcoming Release
 
+## 2020.02.05 - 1.0.2002.114
+* Removed all dependencies on AWSSDK.
+* Calls Use-STSRoleWithSAML from AWS.Tools.SecurityToken to assume roles
+
 ## 2019.06.28 - 1.0.1906.66
 * Add full proxy support for SAML client and STS client.
 * Moved project to .Net Standard type
